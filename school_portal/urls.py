@@ -35,5 +35,7 @@ urlpatterns = [
 
     # Reports
     path('reports/', views.reports_list, name='reports_list'),
-    path('reports/<int:student_id>/', views.report_card, name='report_card'),
+    path('reports/<int:student_id>/', views.report_card, name='report_card_old'),  # Ancien format pour compatibilité
+    path('report-card/<int:student_id>/', views.report_card, name='report_card'),
+    path('bulk-report-cards/', views.bulk_report_cards, name='bulk_report_cards'),
 ]

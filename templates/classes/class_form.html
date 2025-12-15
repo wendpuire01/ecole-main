@@ -9,7 +9,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h2 mb-1">Nouvelle Classe</h1>
-            <p class="text-muted mb-0">Créer une nouvelle classe</p>
+            <p class="text-muted mb-0">Créer une nouvelle classe avec ses matières et enseignants</p>
         </div>
         <div>
             <a href="{% url 'classes_list' %}" class="btn btn-outline-secondary">
@@ -20,24 +20,25 @@
 
     <!-- Form -->
     <div class="row">
-        <div class="col-md-10 mx-auto">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Informations de la Classe</h5>
-                </div>
-                <div class="card-body">
-                    <form method="POST" class="needs-validation" novalidate>
-                        {% csrf_token %}
+        <div class="col-md-11 mx-auto">
+            <form method="POST" class="needs-validation" novalidate id="classForm">
+                {% csrf_token %}
 
+                <!-- Informations de base -->
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-school me-2"></i>Informations de la Classe</h5>
+                    </div>
+                    <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Nom de la Classe</label>
+                                <label class="form-label fw-bold">Nom de la Classe <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" name="name"
                                        placeholder="Ex: Terminale S1" required>
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label">Niveau</label>
+                                <label class="form-label fw-bold">Niveau <span class="text-danger">*</span></label>
                                 <select class="form-select" name="level" required>
                                     <option value="">Sélectionner un niveau</option>
                                     <option value="6eme">6ème</option>
@@ -51,7 +52,7 @@
                             </div>
 
                             <div class="col-md-12">
-                                <label class="form-label">Enseignant Titulaire</label>
+                                <label class="form-label fw-bold">Enseignant Titulaire (Principal)</label>
                                 <select class="form-select" name="teacher">
                                     <option value="">Sélectionner un enseignant</option>
                                     {% for teacher in teachers %}
@@ -60,29 +61,164 @@
                                     </option>
                                     {% endfor %}
                                 </select>
-                            </div>
-
-                            <div class="col-md-12">
-                                <label class="form-label">Matières</label>
-                                <select class="form-select" name="subjects" multiple size="8">
-                                    {% for subject in subjects %}
-                                    <option value="{{ subject.id }}">{{ subject.name }}</option>
-                                    {% endfor %}
-                                </select>
-                                <small class="text-muted">Maintenez Ctrl (ou Cmd sur Mac) pour sélectionner plusieurs matières</small>
+                                <small class="text-muted">L'enseignant principal de la classe (facultatif)</small>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <div class="mt-4 d-flex gap-2 justify-content-end">
-                            <a href="{% url 'classes_list' %}" class="btn btn-secondary">Annuler</a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-2"></i>Créer la Classe
+                <!-- Matières et Enseignants -->
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-book me-2"></i>Matières et Enseignants</h5>
+                            <button type="button" class="btn btn-light btn-sm" onclick="addSubject()">
+                                <i class="fas fa-plus me-1"></i>Ajouter une matière
                             </button>
                         </div>
-                    </form>
+                    </div>
+                    <div class="card-body">
+                        <div id="subjectsContainer">
+                            <!-- Les matières seront ajoutées ici dynamiquement -->
+                        </div>
+
+                        <div id="emptyMessage" class="text-center py-4 text-muted">
+                            <i class="fas fa-info-circle fa-2x mb-3"></i>
+                            <p>Cliquez sur "Ajouter une matière" pour commencer</p>
+                        </div>
+                    </div>
                 </div>
-            </div>
+
+                <!-- Boutons d'action -->
+                <div class="d-flex gap-2 justify-content-end">
+                    <a href="{% url 'classes_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-times me-2"></i>Annuler
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-save me-2"></i>Créer la Classe
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
+
+<!-- Template pour une ligne de matière -->
+<template id="subjectRowTemplate">
+    <div class="subject-row mb-3 p-3 border rounded bg-light">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label fw-bold">Matière <span class="text-danger">*</span></label>
+                <select class="form-select subject-select" name="subjects[]" required>
+                    <option value="">-- Sélectionner une matière --</option>
+                    {% for subject in subjects %}
+                    <option value="{{ subject.id }}">{{ subject.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Enseignant <span class="text-danger">*</span></label>
+                <select class="form-select teacher-select" name="teachers[]" required>
+                    <option value="">-- Sélectionner un enseignant --</option>
+                    {% for teacher in teachers %}
+                    <option value="{{ teacher.id }}">{{ teacher.name }} {{ teacher.first_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label fw-bold">Coefficient</label>
+                <input type="number" class="form-control" name="coefficients[]" value="1" min="1" max="10">
+            </div>
+
+            <div class="col-md-1">
+                <button type="button" class="btn btn-danger w-100" onclick="removeSubject(this)">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</template>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let subjectCount = 0;
+
+// Ajouter une matière
+function addSubject() {
+    const template = document.getElementById('subjectRowTemplate');
+    const container = document.getElementById('subjectsContainer');
+    const emptyMessage = document.getElementById('emptyMessage');
+
+    // Cloner le template
+    const clone = template.content.cloneNode(true);
+
+    // Ajouter au container
+    container.appendChild(clone);
+    subjectCount++;
+
+    // Cacher le message vide
+    emptyMessage.style.display = 'none';
+}
+
+// Supprimer une matière
+function removeSubject(button) {
+    const row = button.closest('.subject-row');
+    row.remove();
+    subjectCount--;
+
+    // Afficher le message vide si plus de matières
+    if (subjectCount === 0) {
+        document.getElementById('emptyMessage').style.display = 'block';
+    }
+}
+
+// Validation du formulaire
+document.getElementById('classForm').addEventListener('submit', function(e) {
+    const subjectSelects = document.querySelectorAll('.subject-select');
+
+    if (subjectSelects.length === 0) {
+        e.preventDefault();
+        alert('Veuillez ajouter au moins une matière à la classe');
+        return false;
+    }
+
+    // Vérifier que chaque matière a un enseignant
+    let valid = true;
+    subjectSelects.forEach((select, index) => {
+        const teacherSelect = document.querySelectorAll('.teacher-select')[index];
+
+        if (select.value && !teacherSelect.value) {
+            valid = false;
+            teacherSelect.classList.add('is-invalid');
+        } else {
+            teacherSelect.classList.remove('is-invalid');
+        }
+    });
+
+    if (!valid) {
+        e.preventDefault();
+        alert('Veuillez sélectionner un enseignant pour chaque matière');
+        return false;
+    }
+
+    // Vérifier les doublons de matières
+    const selectedSubjects = Array.from(subjectSelects).map(s => s.value).filter(v => v);
+    const uniqueSubjects = new Set(selectedSubjects);
+
+    if (selectedSubjects.length !== uniqueSubjects.size) {
+        e.preventDefault();
+        alert('Vous avez sélectionné la même matière plusieurs fois');
+        return false;
+    }
+});
+
+// Ajouter automatiquement une matière au chargement
+window.addEventListener('load', function() {
+    addSubject();
+});
+</script>
 {% endblock %}

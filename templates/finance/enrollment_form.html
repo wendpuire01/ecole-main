@@ -1,0 +1,333 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Nouvelle Inscription - Gestion d'École{% endblock %}
+
+{% block content %}
+<div class="enrollment-form-page">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1">Nouvelle Inscription</h1>
+            <p class="text-muted mb-0">Enregistrer une inscription ou réinscription</p>
+        </div>
+        <div>
+            <a href="{% url 'enrollments_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Retour
+            </a>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="row">
+        <div class="col-md-10 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-user-plus me-2"></i>
+                        Informations de l'Inscription
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" class="needs-validation" novalidate id="enrollmentForm">
+                        {% csrf_token %}
+
+                        <!-- Type d'inscription -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-12">
+                                <label class="form-label fw-bold">Type d'Inscription <span class="text-danger">*</span></label>
+                                <div class="btn-group w-100" role="group">
+                                    <input type="radio" class="btn-check" name="enrollment_type" id="type_inscription" value="inscription" checked>
+                                    <label class="btn btn-outline-primary" for="type_inscription">
+                                        <i class="fas fa-user-plus me-2"></i>Nouvelle Inscription
+                                    </label>
+
+                                    <input type="radio" class="btn-check" name="enrollment_type" id="type_reinscription" value="reinscription">
+                                    <label class="btn btn-outline-success" for="type_reinscription">
+                                        <i class="fas fa-user-check me-2"></i>Réinscription
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Section Réinscription (recherche par matricule) -->
+                        <div id="reinscriptionSection" style="display: none;">
+                            <h6 class="text-success mb-3">
+                                <i class="fas fa-search me-2"></i>Rechercher l'Élève
+                            </h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label">Matricule <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" name="matricule" id="matriculeInput"
+                                               placeholder="Ex: ET-2024-0001">
+                                        <button type="button" class="btn btn-primary" id="searchBtn">
+                                            <i class="fas fa-search"></i> Rechercher
+                                        </button>
+                                    </div>
+                                    <div id="matriculeError" class="text-danger small mt-1" style="display: none;"></div>
+                                </div>
+                                <div class="col-md-6 d-flex align-items-end">
+                                    <div id="studentFound" class="alert alert-success mb-0 w-100" style="display: none;">
+                                        <i class="fas fa-check-circle me-2"></i>
+                                        Élève trouvé : <strong id="studentFoundName"></strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section Nouvelle Inscription (infos élève) -->
+                        <div id="newStudentSection">
+                            <h6 class="text-primary mb-3">
+                                <i class="fas fa-user me-2"></i>Informations de l'Élève
+                            </h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-4">
+                                    <label class="form-label">Nom <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" name="name" id="name"
+                                           placeholder="KABORE" required>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label">Prénom <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" name="first_name" id="first_name"
+                                           placeholder="Jean" required>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label">Deuxième Prénom</label>
+                                    <input type="text" class="form-control" name="surname" id="surname"
+                                           placeholder="Baptiste">
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Date de Naissance <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" name="birth_date" id="birth_date" required>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Téléphone <span class="text-danger">*</span></label>
+                                    <input type="tel" class="form-control" name="phone" id="phone"
+                                           placeholder="+226 XX XX XX XX" required>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" name="email" id="email"
+                                           placeholder="jean.kabore@exemple.com">
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Adresse <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" name="address" id="address"
+                                           placeholder="Ouagadougou, Secteur 15" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Informations d'inscription (communes) -->
+                        <h6 class="text-info mb-3">
+                            <i class="fas fa-graduation-cap me-2"></i>Détails de l'Inscription
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Classe <span class="text-danger">*</span></label>
+                                <select class="form-select" name="classe" id="classe" required>
+                                    <option value="">Sélectionner une classe</option>
+                                    {% for class in classes %}
+                                    <option value="{{ class.id }}">{{ class.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Année Scolaire <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="academic_year"
+                                       value="{{ academic_year }}" required readonly>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Montant de l'Inscription (FCFA) <small class="text-muted">(optionnel)</small></label>
+                                <input type="number" class="form-control" name="amount"
+                                       placeholder="200000" min="0">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Date d'Inscription <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" name="enrollment_date" id="enrollment_date" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Mode de Paiement</label>
+                                <select class="form-select" name="payment_method">
+                                    <option value="">Sélectionner</option>
+                                    <option value="cash">Espèces</option>
+                                    <option value="bank">Virement Bancaire</option>
+                                    <option value="mobile">Mobile Money</option>
+                                    <option value="check">Chèque</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Statut</label>
+                                <select class="form-select" name="status">
+                                    <option value="completed" selected>Complétée</option>
+                                    <option value="pending">En attente</option>
+                                </select>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label">Référence / Numéro de Transaction</label>
+                                <input type="text" class="form-control" name="reference"
+                                       placeholder="REF-2024-001">
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label">Notes / Remarques</label>
+                                <textarea class="form-control" name="notes" rows="3"
+                                          placeholder="Informations complémentaires..."></textarea>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 d-flex gap-2 justify-content-end">
+                            <a href="{% url 'enrollments_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i>Annuler
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-2"></i>Enregistrer l'Inscription
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Help Card -->
+            <div class="card mt-3 border-info">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="fas fa-info-circle text-info me-2"></i>Comment ça marche ?
+                    </h6>
+                    <ul class="mb-0 small text-muted">
+                        <li><strong>Nouvelle Inscription :</strong> Pour un élève qui rejoint l'école pour la première fois.
+                            Le matricule sera généré automatiquement (ex: ET-2025-0001)</li>
+                        <li><strong>Réinscription :</strong> Pour un élève déjà enregistré.
+                            Entrez son matricule et ses informations s'afficheront automatiquement</li>
+                        <li>Le matricule est unique et permet de suivre l'historique de l'élève</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Toggle entre nouvelle inscription et réinscription
+const typeInscription = document.getElementById('type_inscription');
+const typeReinscription = document.getElementById('type_reinscription');
+const newStudentSection = document.getElementById('newStudentSection');
+const reinscriptionSection = document.getElementById('reinscriptionSection');
+
+function toggleSections() {
+    if (typeReinscription.checked) {
+        newStudentSection.style.display = 'none';
+        reinscriptionSection.style.display = 'block';
+        // Rendre les champs élève non requis pour réinscription
+        document.querySelectorAll('#newStudentSection input[required]').forEach(input => {
+            input.removeAttribute('required');
+        });
+    } else {
+        newStudentSection.style.display = 'block';
+        reinscriptionSection.style.display = 'none';
+        // Rendre les champs élève requis pour nouvelle inscription
+        document.getElementById('name').setAttribute('required', 'required');
+        document.getElementById('first_name').setAttribute('required', 'required');
+        document.getElementById('birth_date').setAttribute('required', 'required');
+        document.getElementById('phone').setAttribute('required', 'required');
+        document.getElementById('address').setAttribute('required', 'required');
+    }
+}
+
+typeInscription.addEventListener('change', toggleSections);
+typeReinscription.addEventListener('change', toggleSections);
+
+// Recherche par matricule (AJAX)
+const searchBtn = document.getElementById('searchBtn');
+const matriculeInput = document.getElementById('matriculeInput');
+const matriculeError = document.getElementById('matriculeError');
+const studentFound = document.getElementById('studentFound');
+const studentFoundName = document.getElementById('studentFoundName');
+
+searchBtn.addEventListener('click', function() {
+    const matricule = matriculeInput.value.trim();
+
+    if (!matricule) {
+        matriculeError.textContent = 'Veuillez entrer un matricule';
+        matriculeError.style.display = 'block';
+        studentFound.style.display = 'none';
+        return;
+    }
+
+    // Appel AJAX
+    fetch(`/finance/api/student-by-matricule/?matricule=${encodeURIComponent(matricule)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Élève trouvé
+                matriculeError.style.display = 'none';
+                studentFound.style.display = 'block';
+                studentFoundName.textContent = `${data.student.name} ${data.student.first_name}`;
+
+                // Optionnel : Pré-remplir les infos (en lecture seule)
+                // Vous pouvez afficher les infos de l'élève si besoin
+            } else {
+                // Élève non trouvé
+                matriculeError.textContent = data.message;
+                matriculeError.style.display = 'block';
+                studentFound.style.display = 'none';
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            matriculeError.textContent = 'Erreur lors de la recherche';
+            matriculeError.style.display = 'block';
+            studentFound.style.display = 'none';
+        });
+});
+
+// Recherche automatique quand on appuie sur Entrée
+matriculeInput.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        searchBtn.click();
+    }
+});
+
+// Form validation
+(function() {
+    'use strict';
+    const forms = document.querySelectorAll('.needs-validation');
+    Array.from(forms).forEach(form => {
+        form.addEventListener('submit', event => {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+})();
+
+// Auto-fill current date
+const enrollmentDateInput = document.getElementById('enrollment_date');
+if (enrollmentDateInput && !enrollmentDateInput.value) {
+    const today = new Date().toISOString().split('T')[0];
+    enrollmentDateInput.value = today;
+}
+</script>
+{% endblock %}

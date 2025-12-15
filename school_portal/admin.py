@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Student, Teacher, Class, Subject, SubjectClass, Period, Assignment, Mark
+from .models import Student, Teacher, Class, Subject, SubjectClass, Period, Assignment, Mark, SchoolSettings
 
 
 @admin.register(Student)
@@ -134,3 +134,26 @@ class MarkAdmin(admin.ModelAdmin):
         color = 'green' if obj.score >= 10 else 'red'
         return format_html('<span style="color: {}; font-weight: bold;">{}/20</span>', color, obj.score)
     score_display.short_description = 'Note'
+
+
+@admin.register(SchoolSettings)
+class SchoolSettingsAdmin(admin.ModelAdmin):
+    fieldsets = (
+        ('Informations de base', {
+            'fields': ('name', 'address', 'phone', 'email', 'website')
+        }),
+        ('Branding', {
+            'fields': ('logo', 'motto')
+        }),
+        ('Direction', {
+            'fields': ('director_name',)
+        }),
+    )
+
+    def has_add_permission(self, request):
+        # Empêcher la création de plus d'une instance
+        return not SchoolSettings.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        # Empêcher la suppression
+        return False

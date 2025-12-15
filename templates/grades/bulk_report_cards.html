@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulletins de Notes - {{ class_name }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 11px;
+            line-height: 1.3;
+        }
+
+        @page {
+            size: A4;
+            margin: 10mm;
+        }
+
+        @media print {
+            .bulletin {
+                page-break-after: always;
+            }
+
+            .bulletin:last-child {
+                page-break-after: auto;
+            }
+
+            .no-print {
+                display: none;
+            }
+        }
+
+        .bulletin {
+            width: 100%;
+            max-width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto 20px;
+            padding: 15px;
+            background: white;
+            border: 1px solid #ddd;
+        }
+
+        /* Header */
+        .bulletin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #333;
+        }
+
+        .school-info {
+            flex: 1;
+        }
+
+        .school-logo {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+        }
+
+        .school-name {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 3px 0;
+            text-transform: uppercase;
+        }
+
+        .school-details {
+            font-size: 9px;
+            color: #666;
+        }
+
+        .bulletin-title {
+            text-align: center;
+            flex: 1;
+        }
+
+        .bulletin-title h1 {
+            font-size: 18px;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+        }
+
+        .bulletin-title .year {
+            font-size: 11px;
+            color: #666;
+        }
+
+        /* Student Info */
+        .student-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin: 10px 0;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .info-item {
+            font-size: 10px;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #555;
+        }
+
+        /* Grades Table */
+        .grades-section {
+            margin: 10px 0;
+        }
+
+        .grades-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+            font-size: 10px;
+        }
+
+        .grades-table th,
+        .grades-table td {
+            border: 1px solid #333;
+            padding: 4px;
+            text-align: center;
+        }
+
+        .grades-table th {
+            background: #333;
+            color: white;
+            font-weight: bold;
+        }
+
+        .grades-table td:first-child {
+            text-align: left;
+            padding-left: 6px;
+        }
+
+        .grades-table tr.total-row {
+            background: #f0f0f0;
+            font-weight: bold;
+        }
+
+        /* Summary Section */
+        .summary-section {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .summary-box {
+            padding: 6px;
+            border: 1px solid #333;
+            text-align: center;
+            background: #f8f9fa;
+        }
+
+        .summary-label {
+            font-size: 9px;
+            color: #666;
+            margin-bottom: 2px;
+        }
+
+        .summary-value {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* Attendance */
+        .attendance-section {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .attendance-box {
+            padding: 6px;
+            border: 1px solid #333;
+            text-align: center;
+        }
+
+        .attendance-label {
+            font-size: 9px;
+            color: #666;
+        }
+
+        .attendance-value {
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        /* Appreciation */
+        .appreciation-section {
+            margin: 10px 0;
+            padding: 8px;
+            border: 1px solid #333;
+            min-height: 50px;
+        }
+
+        .appreciation-title {
+            font-size: 10px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        /* Signatures */
+        .signatures-section {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .signature-box {
+            text-align: center;
+        }
+
+        .signature-title {
+            font-size: 9px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .signature-line {
+            border-bottom: 1px solid #333;
+            margin: 25px 5px 3px;
+        }
+
+        .signature-label {
+            font-size: 8px;
+            color: #666;
+        }
+
+        /* Print Button */
+        .print-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .print-button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <button onclick="window.print()" class="print-button no-print">
+        <i class="fas fa-print"></i> Imprimer Tous les Bulletins
+    </button>
+
+    {% for bulletin in bulletins %}
+    <div class="bulletin">
+        <!-- Header -->
+        <div class="bulletin-header">
+            <div class="school-info">
+                {% if school_settings.logo %}
+                <img src="{{ school_settings.logo.url }}" alt="Logo" class="school-logo">
+                {% endif %}
+                <div class="school-name">{{ school_settings.name }}</div>
+                <div class="school-details">
+                    {{ school_settings.address }}<br>
+                    Tél: {{ school_settings.phone }}
+                    {% if school_settings.email %} | Email: {{ school_settings.email }}{% endif %}
+                </div>
+            </div>
+
+            <div class="bulletin-title">
+                <h1>Bulletin de Notes</h1>
+                <div class="year">Année Scolaire {{ current_year }}</div>
+            </div>
+
+            <div class="school-info" style="text-align: right;">
+                {% if school_settings.motto %}
+                <div style="font-style: italic; font-size: 10px; margin-top: 20px;">
+                    "{{ school_settings.motto }}"
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Student Info -->
+        <div class="student-info">
+            <div class="info-item">
+                <span class="info-label">Nom et Prénom:</span>
+                {{ bulletin.student.full_name }}
+            </div>
+            <div class="info-item">
+                <span class="info-label">Matricule:</span>
+                {{ bulletin.student.matricule|default:"--" }}
+            </div>
+            <div class="info-item">
+                <span class="info-label">Date de Naissance:</span>
+                {{ bulletin.student.birth_date|date:"d/m/Y" }}
+            </div>
+            <div class="info-item">
+                <span class="info-label">Classe:</span>
+                {{ bulletin.student.class }}
+            </div>
+        </div>
+
+        <!-- Grades Table -->
+        <div class="grades-section">
+            <table class="grades-table">
+                <thead>
+                    <tr>
+                        <th style="width: 35%;">Matières</th>
+                        <th style="width: 15%;">Enseignant</th>
+                        <th style="width: 10%;">Coef.</th>
+                        <th style="width: 10%;">Note/20</th>
+                        <th style="width: 15%;">Total Points</th>
+                        <th style="width: 15%;">Appréciation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for grade in bulletin.grades %}
+                    <tr>
+                        <td>{{ grade.subject }}</td>
+                        <td>{{ grade.teacher|default:"--" }}</td>
+                        <td>{{ grade.coefficient }}</td>
+                        <td>{{ grade.score|default:"--" }}</td>
+                        <td>{{ grade.total_points|default:"--" }}</td>
+                        <td>
+                            {% if grade.score %}
+                                {% if grade.score >= 16 %}Très Bien
+                                {% elif grade.score >= 14 %}Bien
+                                {% elif grade.score >= 12 %}Assez Bien
+                                {% elif grade.score >= 10 %}Passable
+                                {% else %}Insuffisant
+                                {% endif %}
+                            {% else %}--{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="total-row">
+                        <td colspan="2">TOTAL</td>
+                        <td>{{ bulletin.total_coefficient }}</td>
+                        <td>--</td>
+                        <td>{{ bulletin.total_points|floatformat:2 }}</td>
+                        <td>--</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary-section">
+            <div class="summary-box">
+                <div class="summary-label">Moyenne Générale</div>
+                <div class="summary-value">{{ bulletin.average|floatformat:2 }}/20</div>
+            </div>
+            <div class="summary-box">
+                <div class="summary-label">Rang</div>
+                <div class="summary-value">{{ bulletin.rank|default:"--" }}</div>
+            </div>
+            <div class="summary-box">
+                <div class="summary-label">Effectif Classe</div>
+                <div class="summary-value">{{ bulletin.class_size }}</div>
+            </div>
+        </div>
+
+        <!-- Attendance -->
+        <div class="attendance-section">
+            <div class="attendance-box">
+                <div class="attendance-label">Absences</div>
+                <div class="attendance-value">{{ bulletin.student.absence|default:"--" }}</div>
+            </div>
+            <div class="attendance-box">
+                <div class="attendance-label">Retards</div>
+                <div class="attendance-value">{{ bulletin.student.retard|default:"--" }}</div>
+            </div>
+        </div>
+
+        <!-- Appreciation -->
+        <div class="appreciation-section">
+            <div class="appreciation-title">Appréciation du Conseil de Classe:</div>
+            <div style="margin-top: 5px; min-height: 35px;">
+                {% if bulletin.average >= 16 %}
+                Excellent travail. Continue ainsi.
+                {% elif bulletin.average >= 14 %}
+                Bon travail. Peut mieux faire.
+                {% elif bulletin.average >= 12 %}
+                Travail satisfaisant. Encourage à progresser.
+                {% elif bulletin.average >= 10 %}
+                Travail moyen. Doit fournir plus d'efforts.
+                {% else %}
+                Résultats insuffisants. Doit redoubler d'efforts.
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Signatures -->
+        <div class="signatures-section">
+            <div class="signature-box">
+                <div class="signature-title">L'Enseignant(e)</div>
+                <div class="signature-line"></div>
+                <div class="signature-label">Nom et Signature</div>
+            </div>
+            <div class="signature-box">
+                <div class="signature-title">Le Directeur</div>
+                <div class="signature-line"></div>
+                <div class="signature-label">{{ school_settings.director_name|default:"Nom et Signature" }}</div>
+            </div>
+            <div class="signature-box">
+                <div class="signature-title">Le Parent/Tuteur</div>
+                <div class="signature-line"></div>
+                <div class="signature-label">Nom et Signature</div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div style="text-align: center; padding: 50px;">
+        <p>Aucun bulletin à afficher.</p>
+    </div>
+    {% endfor %}
+
+    <script>
+        // Auto-print when page loads (optional)
+        // window.onload = function() {
+        //     setTimeout(() => window.print(), 500);
+        // };
+    </script>
+</body>
+</html>

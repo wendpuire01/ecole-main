@@ -9,159 +9,230 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h2 mb-1">Bulletins de Notes</h1>
-            <p class="text-muted mb-0">Générer et consulter les bulletins</p>
-        </div>
-        <div>
-            <button class="btn btn-success">
-                <i class="fas fa-file-excel me-2"></i>Exporter Tout
-            </button>
+            <p class="text-muted mb-0">Générer et imprimer les bulletins</p>
         </div>
     </div>
 
-    <!-- Filter Section -->
+    <!-- Filtres et Export en masse -->
     <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtres et Export</h5>
+        </div>
         <div class="card-body">
             <form method="GET" class="row g-3">
-                <div class="col-md-4">
-                    <label class="form-label">Classe</label>
-                    <select class="form-select" name="class">
+                <div class="col-md-5">
+                    <label class="form-label fw-bold">Classe</label>
+                    <select class="form-select" name="class" id="classSelect">
                         <option value="">Toutes les classes</option>
                         {% for class in classes %}
-                        <option value="{{ class.id }}">{{ class.name }}</option>
+                        <option value="{{ class.id }}" {% if selected_class == class.id %}selected{% endif %}>
+                            {{ class.name }} ({{ class.students.count }} élèves)
+                        </option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">Période</label>
-                    <select class="form-select" name="period">
-                        <option value="">Toutes les périodes</option>
-                        <option value="1">1er Trimestre</option>
-                        <option value="2">2e Trimestre</option>
-                        <option value="3">3e Trimestre</option>
-                    </select>
+
+                <div class="col-md-5">
+                    <label class="form-label fw-bold">Rechercher un élève</label>
+                    <input type="text" class="form-control" name="search"
+                           placeholder="Nom, prénom ou matricule..." value="{{ search }}">
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">&nbsp;</label>
+
+                <div class="col-md-2 d-flex align-items-end">
                     <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-filter me-2"></i>Filtrer
+                        <i class="fas fa-search me-2"></i>Filtrer
                     </button>
                 </div>
             </form>
-        </div>
-    </div>
 
-    <!-- Students List -->
-    <div class="card">
-        <div class="card-header">
-            <h5 class="card-title mb-0">Liste des Étudiants</h5>
-        </div>
-        <div class="card-body p-0">
-            {% if students %}
-                <div class="table-responsive">
-                    <table class="table mb-0">
-                        <thead>
-                            <tr>
-                                <th>Matricule</th>
-                                <th>Nom Complet</th>
-                                <th>Classe</th>
-                                <th>Moyenne Générale</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for student in students %}
-                            <tr>
-                                <td>
-                                    <span class="badge bg-secondary">{{ student.id|stringformat:"05d" }}</span>
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="user-avatar me-2">
-                                            <i class="fas fa-user-graduate text-primary"></i>
-                                        </div>
-                                        <div class="fw-semibold">
-                                            {{ student.name }} {{ student.first_name }}{% if student.surname %} {{ student.surname }}{% endif %}
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    {% if student.classe %}
-                                        <span class="badge bg-primary">{{ student.classe.name }}</span>
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <span class="badge bg-info fs-6">-/20</span>
-                                </td>
-                                <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <a href="{% url 'report_card' student.id %}"
-                                           class="btn btn-outline-primary"
-                                           title="Voir le Bulletin">
-                                            <i class="fas fa-file-alt me-1"></i>Bulletin
-                                        </a>
-                                        <a href="{% url 'report_card' student.id %}?print=1"
-                                           class="btn btn-outline-success"
-                                           title="Imprimer"
-                                           target="_blank">
-                                            <i class="fas fa-print"></i>
-                                        </a>
-                                        <a href="#"
-                                           class="btn btn-outline-info"
-                                           title="Télécharger PDF">
-                                            <i class="fas fa-download"></i>
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            {% else %}
-                <div class="text-center py-5">
-                    <i class="fas fa-file-alt fa-4x text-muted mb-3"></i>
-                    <p class="text-muted mb-0">Aucun bulletin disponible</p>
-                    <p class="text-muted small">Ajoutez des étudiants pour générer des bulletins</p>
-                </div>
+            {% if selected_class %}
+            <hr>
+            <div class="d-flex gap-2">
+                <a href="{% url 'bulk_report_cards' %}?class={{ selected_class }}"
+                   class="btn btn-success" target="_blank">
+                    <i class="fas fa-print me-2"></i>Imprimer tous les bulletins de la classe
+                </a>
+            </div>
             {% endif %}
         </div>
     </div>
 
-    <!-- Bulk Actions -->
-    {% if students %}
-    <div class="card mt-4">
+    <!-- Liste des élèves -->
+    <div class="card">
         <div class="card-header">
-            <h5 class="card-title mb-0">Actions en Masse</h5>
+            <h5 class="mb-0">
+                <i class="fas fa-graduation-cap me-2"></i>
+                Élèves ({{ students.count }})
+            </h5>
         </div>
-        <div class="card-body">
-            <div class="d-flex gap-2 flex-wrap">
-                <button class="btn btn-primary">
-                    <i class="fas fa-print me-2"></i>Imprimer Tous les Bulletins
-                </button>
-                <button class="btn btn-success">
-                    <i class="fas fa-file-pdf me-2"></i>Générer PDF pour Toute la Classe
-                </button>
-                <button class="btn btn-info">
-                    <i class="fas fa-envelope me-2"></i>Envoyer par Email
-                </button>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="5%">
+                                <input type="checkbox" id="selectAll">
+                            </th>
+                            <th width="15%">Matricule</th>
+                            <th width="30%">Nom et Prénom</th>
+                            <th width="20%">Classe</th>
+                            <th width="15%">Notes</th>
+                            <th width="15%">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        <tr>
+                            <td>
+                                <input type="checkbox" class="student-checkbox" value="{{ student.id }}">
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ student.matricule|default:"--" }}</span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="user-avatar me-2">
+                                        <i class="fas fa-user-circle fa-2x text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-semibold">{{ student.name }} {{ student.first_name }}</div>
+                                        <small class="text-muted">{{ student.birth_date|date:"d/m/Y" }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% with student.class_set.first as student_class %}
+                                {% if student_class %}
+                                <span class="badge bg-info">{{ student_class.name }}</span>
+                                {% else %}
+                                <span class="text-muted">Non assigné</span>
+                                {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                {% with student.marks.count as marks_count %}
+                                {% if marks_count > 0 %}
+                                <span class="badge bg-success">{{ marks_count }} note(s)</span>
+                                {% else %}
+                                <span class="badge bg-warning">Aucune note</span>
+                                {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'report_card' student.id %}"
+                                       class="btn btn-outline-primary"
+                                       title="Voir le bulletin"
+                                       target="_blank">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <button onclick="printBulletin({{ student.id }})"
+                                            class="btn btn-outline-success"
+                                            title="Imprimer">
+                                        <i class="fas fa-print"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                                <p class="text-muted mb-0">Aucun élève trouvé</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
-    </div>
-    {% endif %}
-</div>
 
-<style>
-.user-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
+        {% if students %}
+        <div class="card-footer">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <button onclick="printSelected()" class="btn btn-sm btn-success" id="printSelectedBtn" style="display: none;">
+                        <i class="fas fa-print me-2"></i>Imprimer la sélection
+                    </button>
+                </div>
+                <div class="text-muted">
+                    Total: {{ students.count }} élève(s)
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Aide -->
+    <div class="card mt-4 border-info">
+        <div class="card-body">
+            <h6 class="card-title">
+                <i class="fas fa-info-circle text-info me-2"></i>Comment ça marche ?
+            </h6>
+            <ul class="mb-0 small text-muted">
+                <li><strong>Bulletin individuel :</strong> Cliquez sur l'icône "œil" pour voir le bulletin d'un élève</li>
+                <li><strong>Imprimer un bulletin :</strong> Cliquez sur l'icône "imprimante"</li>
+                <li><strong>Export en masse :</strong> Sélectionnez une classe et cliquez sur "Imprimer tous les bulletins"</li>
+                <li><strong>Sélection multiple :</strong> Cochez les cases et cliquez sur "Imprimer la sélection"</li>
+                <li><strong>PDF :</strong> Utilisez la fonction d'impression du navigateur (Ctrl+P) et choisissez "Enregistrer au format PDF"</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Select All
+document.getElementById('selectAll')?.addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.student-checkbox');
+    checkboxes.forEach(cb => cb.checked = this.checked);
+    togglePrintSelectedButton();
+});
+
+// Show/Hide print selected button
+document.querySelectorAll('.student-checkbox').forEach(cb => {
+    cb.addEventListener('change', togglePrintSelectedButton);
+});
+
+function togglePrintSelectedButton() {
+    const checked = document.querySelectorAll('.student-checkbox:checked');
+    const btn = document.getElementById('printSelectedBtn');
+    if (checked.length > 0) {
+        btn.style.display = 'inline-block';
+        btn.innerHTML = `<i class="fas fa-print me-2"></i>Imprimer la sélection (${checked.length})`;
+    } else {
+        btn.style.display = 'none';
+    }
 }
-</style>
+
+// Imprimer un bulletin
+function printBulletin(studentId) {
+    const url = `/portal/report-card/${studentId}/?print=1`;
+    window.open(url, '_blank');
+}
+
+// Imprimer la sélection
+function printSelected() {
+    const selected = Array.from(document.querySelectorAll('.student-checkbox:checked'))
+        .map(cb => cb.value);
+
+    if (selected.length === 0) {
+        alert('Veuillez sélectionner au moins un élève');
+        return;
+    }
+
+    // Ouvrir chaque bulletin dans un nouvel onglet
+    selected.forEach((studentId, index) => {
+        setTimeout(() => {
+            printBulletin(studentId);
+        }, index * 500);
+    });
+}
+
+// Auto-submit on class change
+document.getElementById('classSelect')?.addEventListener('change', function() {
+    this.form.submit();
+});
+</script>
 {% endblock %}

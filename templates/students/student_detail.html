@@ -74,11 +74,13 @@
                             <label class="text-muted small mb-1">Classe</label>
                             <div class="fw-semibold">
                                 <i class="fas fa-school me-2 text-primary"></i>
-                                {% if student.classe %}
-                                    {{ student.classe.name }}
+                                {% with student.class_set.first as student_class %}
+                                {% if student_class %}
+                                    {{ student_class.name }}
                                 {% else %}
                                     <span class="text-muted">Non assigné</span>
                                 {% endif %}
+                                {% endwith %}
                             </div>
                         </div>
                     </div>
@@ -162,9 +164,13 @@
                 </div>
                 <div class="card-body">
                     <div class="d-flex gap-2 flex-wrap">
-                        <a href="{% url 'grades_list' %}?class={{ student.classe.id }}" class="btn btn-outline-primary">
+                        {% with student.class_set.first as student_class %}
+                        {% if student_class %}
+                        <a href="{% url 'grades_list' %}?class={{ student_class.id }}" class="btn btn-outline-primary">
                             <i class="fas fa-chart-line me-2"></i>Voir les Notes
                         </a>
+                        {% endif %}
+                        {% endwith %}
                         <a href="#" class="btn btn-outline-success">
                             <i class="fas fa-dollar-sign me-2"></i>Paiements
                         </a>

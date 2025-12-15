@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Gestion des Inscriptions - Gestion d'École{% endblock %}
+
+{% block content %}
+<div class="enrollments-page">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1">Gestion des Inscriptions</h1>
+            <p class="text-muted mb-0">Suivi des inscriptions et réinscriptions</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" onclick="exportTableToExcel('enrollmentsTable', 'inscriptions')">
+                <i class="fas fa-file-excel me-2"></i>Exporter
+            </button>
+            <a href="{% url 'enrollment_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Nouvelle Inscription
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-4">
+            <div class="stat-card success">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="stat-label">Total Inscriptions</p>
+                        <h3 class="stat-value">{{ total_enrollments|default:"0" }}</h3>
+                    </div>
+                    <div class="stat-icon success">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="stat-card info">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="stat-label">Nouvelles Inscriptions</p>
+                        <h3 class="stat-value">{{ new_enrollments|default:"0" }}</h3>
+                    </div>
+                    <div class="stat-icon info">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="stat-card warning">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="stat-label">Réinscriptions</p>
+                        <h3 class="stat-value">{{ reinrollments|default:"0" }}</h3>
+                    </div>
+                    <div class="stat-icon warning">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters & Search -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Rechercher</label>
+                    <input type="text" class="form-control" name="search" placeholder="Nom de l'étudiant...">
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Type</label>
+                    <select class="form-select" name="type">
+                        <option value="">Tous</option>
+                        <option value="inscription">Inscription</option>
+                        <option value="reinscription">Réinscription</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Statut</label>
+                    <select class="form-select" name="status">
+                        <option value="">Tous</option>
+                        <option value="completed">Complétée</option>
+                        <option value="pending">En attente</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search me-2"></i>Filtrer
+                        </button>
+                        <a href="{% url 'enrollments_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-redo"></i>
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Enrollments Table -->
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table mb-0" id="enrollmentsTable">
+                    <thead>
+                        <tr>
+                            <th width="5%">
+                                <input type="checkbox" id="selectAll">
+                            </th>
+                            <th>Étudiant</th>
+                            <th>Classe</th>
+                            <th>Type</th>
+                            <th>Montant</th>
+                            <th>Date</th>
+                            <th>Statut</th>
+                            <th width="10%">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for enrollment in enrollments %}
+                        <tr>
+                            <td>
+                                <input type="checkbox" class="enrollment-checkbox">
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="user-avatar me-2">
+                                        <i class="fas fa-user-circle text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-semibold">{{ enrollment.student.name }} {{ enrollment.student.first_name }}</div>
+                                        <small class="text-muted">{{ enrollment.student.matricule }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ enrollment.classe.name }}</td>
+                            <td>
+                                {% if enrollment.enrollment_type == 'inscription' %}
+                                <span class="badge bg-info">Nouvelle Inscription</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Réinscription</span>
+                                {% endif %}
+                            </td>
+                            <td class="fw-semibold">{{ enrollment.amount|floatformat:0 }} FCFA</td>
+                            <td>{{ enrollment.enrollment_date|date:"d/m/Y" }}</td>
+                            <td>
+                                {% if enrollment.status == 'completed' %}
+                                <span class="badge bg-success">Complétée</span>
+                                {% elif enrollment.status == 'pending' %}
+                                <span class="badge bg-warning">En attente</span>
+                                {% else %}
+                                <span class="badge bg-danger">Annulée</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" title="Voir">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-outline-secondary" title="Modifier">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-5">
+                                <i class="fas fa-user-graduate fa-4x text-muted mb-3"></i>
+                                <p class="text-muted mb-0">Aucune inscription enregistrée</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        {% if enrollments %}
+        <div class="card-footer">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="text-muted">
+                    Affichage de {{ enrollments|length }} résultats
+                </div>
+                <nav>
+                    <ul class="pagination mb-0">
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#"><i class="fas fa-chevron-left"></i></a>
+                        </li>
+                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                        <li class="page-item"><a class="page-link" href="#">2</a></li>
+                        <li class="page-item"><a class="page-link" href="#">3</a></li>
+                        <li class="page-item">
+                            <a class="page-link" href="#"><i class="fas fa-chevron-right"></i></a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Select All Checkboxes
+document.getElementById('selectAll')?.addEventListener('change', function() {
+    document.querySelectorAll('.enrollment-checkbox').forEach(cb => {
+        cb.checked = this.checked;
+    });
+});
+</script>
+{% endblock %}

@@ -138,10 +138,39 @@ def profile(request):
 @login_required
 def settings_view(request):
     """Paramètres de l'application"""
-    if request.method == 'POST':
-        # Traiter les modifications de paramètres
-        messages.success(request, 'Paramètres mis à jour avec succès')
-        return redirect('settings')
+    from school_portal.models import SchoolSettings
 
-    context = {}
+    # Récupérer ou créer les paramètres
+    school_settings, created = SchoolSettings.objects.get_or_create(
+        defaults={
+            'name': 'ÉCOLE SECONDAIRE',
+            'address': 'Ouagadougou, Burkina Faso',
+            'phone': '+226 XX XX XX XX'
+        }
+    )
+
+    if request.method == 'POST':
+        try:
+            # Mettre à jour les paramètres
+            school_settings.name = request.POST.get('name')
+            school_settings.address = request.POST.get('address')
+            school_settings.phone = request.POST.get('phone')
+            school_settings.email = request.POST.get('email', '')
+            school_settings.website = request.POST.get('website', '')
+            school_settings.director_name = request.POST.get('director_name', '')
+            school_settings.motto = request.POST.get('motto', '')
+
+            # Gérer l'upload du logo
+            if 'logo' in request.FILES:
+                school_settings.logo = request.FILES['logo']
+
+            school_settings.save()
+            messages.success(request, 'Paramètres mis à jour avec succès')
+            return redirect('settings')
+        except Exception as e:
+            messages.error(request, f'Erreur: {str(e)}')
+
+    context = {
+        'school_settings': school_settings,
+    }
     return render(request, 'settings.html', context)

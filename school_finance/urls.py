@@ -11,6 +11,7 @@ urlpatterns = [
     # Enrollments
     path('enrollments/', views.enrollments_list, name='enrollments_list'),
     path('enrollments/create/', views.enrollment_create, name='enrollment_create'),
+    path('api/student-by-matricule/', views.get_student_by_matricule, name='get_student_by_matricule'),
 
     # Reports
     path('reports/', views.finance_reports, name='finance_reports'),

@@ -5,6 +5,7 @@ import datetime
 
 # Students Model
 class Student(models.Model):
+    matricule = models.CharField(max_length=20, unique=True, blank=True)
     name = models.CharField(max_length=100)
     first_name = models.CharField(max_length=100)
     surname = models.CharField(max_length=100, blank=True, null=True)
@@ -18,6 +19,27 @@ class Student(models.Model):
 
     def __str__(self):
         return f"<Student: {self.name}>"
+
+    def save(self, *args, **kwargs):
+        """Génère automatiquement le matricule si vide"""
+        if not self.matricule:
+            # Format: ET-YYYY-NNNN (ET = Étudiant, YYYY = année, NNNN = numéro séquentiel)
+            current_year = datetime.date.today().year
+            # Compte les étudiants de cette année
+            last_student = Student.objects.filter(
+                matricule__startswith=f'ET-{current_year}'
+            ).order_by('matricule').last()
+
+            if last_student and last_student.matricule:
+                # Extraire le numéro et incrémenter
+                last_num = int(last_student.matricule.split('-')[-1])
+                new_num = last_num + 1
+            else:
+                new_num = 1
+
+            self.matricule = f'ET-{current_year}-{new_num:04d}'
+
+        super().save(*args, **kwargs)
 
     def age(self):
         return int((datetime.date.today() - self.birth_date).days / 365.25)
@@ -139,11 +161,20 @@ class Subject(models.Model):
         except SubjectClass.DoesNotExist:
             return 1  # Coefficient par défaut
 
+    def get_teacher_for_class(self, classe):
+        """Retourne l'enseignant de la matière pour une classe donnée"""
+        try:
+            subject_class = SubjectClass.objects.get(subject=self, classe=classe)
+            return subject_class.teacher if subject_class.teacher else self.teacher
+        except SubjectClass.DoesNotExist:
+            return self.teacher  # Enseignant par défaut
 
-# Table pour gérer les coefficients par matière/classe
+
+# Table pour gérer les coefficients et enseignants par matière/classe
 class SubjectClass(models.Model):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='subject_classes')
     classe = models.ForeignKey(Class, on_delete=models.CASCADE, related_name='subject_classes')
+    teacher = models.ForeignKey(Teacher, on_delete=models.SET_NULL, null=True, blank=True, related_name='subject_classes')
     coefficient = models.IntegerField(default=1)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -155,7 +186,8 @@ class SubjectClass(models.Model):
         verbose_name_plural = 'Matières-Classes'
 
     def __str__(self):
-        return f"{self.subject.name} - {self.classe.name} (Coef: {self.coefficient})"
+        teacher_name = f" - {self.teacher.name}" if self.teacher else ""
+        return f"{self.subject.name} - {self.classe.name}{teacher_name} (Coef: {self.coefficient})"
 
 
 # Période/Trimestre Model
@@ -223,6 +255,82 @@ class Mark(models.Model):
 
     def __str__(self):
         return self.student.name + ' ' + self.subject + ' ' + self.assignment + ' ' + str(self.score)
+
+
+# Enrollment Model - Historique des inscriptions
+class Enrollment(models.Model):
+    ENROLLMENT_TYPES = [
+        ('inscription', 'Nouvelle Inscription'),
+        ('reinscription', 'Réinscription'),
+    ]
+
+    STATUS_CHOICES = [
+        ('pending', 'En attente'),
+        ('completed', 'Complétée'),
+        ('cancelled', 'Annulée'),
+    ]
+
+    PAYMENT_METHODS = [
+        ('cash', 'Espèces'),
+        ('bank', 'Virement Bancaire'),
+        ('mobile', 'Mobile Money'),
+        ('check', 'Chèque'),
+    ]
+
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='enrollments')
+    classe = models.ForeignKey(Class, on_delete=models.CASCADE, related_name='enrollments')
+    enrollment_type = models.CharField(max_length=20, choices=ENROLLMENT_TYPES, default='inscription')
+    academic_year = models.CharField(max_length=20)  # Ex: 2024-2025
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, blank=True, null=True)
+    enrollment_date = models.DateField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='completed')
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS, blank=True, null=True)
+    reference = models.CharField(max_length=100, blank=True, null=True)
+    notes = models.TextField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-enrollment_date', '-created_at']
+        verbose_name = 'Inscription'
+        verbose_name_plural = 'Inscriptions'
+
+    def __str__(self):
+        return f"{self.student.matricule} - {self.classe.name} ({self.academic_year})"
+
+
+# Paramètres de l'École
+class SchoolSettings(models.Model):
+    """Paramètres globaux de l'école (nom, logo, contacts)"""
+    name = models.CharField(max_length=200, verbose_name="Nom de l'école")
+    address = models.CharField(max_length=300, verbose_name="Adresse")
+    phone = models.CharField(max_length=50, verbose_name="Téléphone")
+    email = models.EmailField(blank=True, null=True, verbose_name="Email")
+    website = models.URLField(blank=True, null=True, verbose_name="Site web")
+    logo = models.ImageField(upload_to='school_logo/', blank=True, null=True, verbose_name="Logo de l'école")
+
+    # Informations complémentaires
+    director_name = models.CharField(max_length=200, blank=True, null=True, verbose_name="Nom du Directeur")
+    motto = models.CharField(max_length=300, blank=True, null=True, verbose_name="Devise de l'école")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Paramètres de l'École"
+        verbose_name_plural = "Paramètres de l'École"
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        """S'assurer qu'il n'y a qu'une seule instance de paramètres"""
+        if not self.pk and SchoolSettings.objects.exists():
+            # Si une instance existe déjà, la mettre à jour au lieu de créer une nouvelle
+            existing = SchoolSettings.objects.first()
+            self.pk = existing.pk
+        super().save(*args, **kwargs)
 
 
 

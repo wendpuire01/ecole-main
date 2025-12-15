@@ -210,7 +210,7 @@ def classes_list(request):
 
 @login_required
 def class_create(request):
-    """Créer une nouvelle classe"""
+    """Créer une nouvelle classe avec matières et enseignants"""
     if request.method == 'POST':
         print("=== DEBUT CREATION CLASSE ===")
         print("POST data:", request.POST)
@@ -232,6 +232,7 @@ def class_create(request):
                 context = {'teachers': teachers, 'subjects': subjects}
                 return render(request, 'classes/class_form.html', context)
 
+            # Créer la classe
             class_obj = Class.objects.create(
                 name=name,
                 level=level,
@@ -240,16 +241,40 @@ def class_create(request):
 
             print(f"Classe créée: {class_obj.id} - {class_obj.name}")
 
-            # Ajouter les matières
-            subjects = request.POST.getlist('subjects')
-            print(f"Matières sélectionnées: {subjects}")
+            # Récupérer les matières, enseignants et coefficients
+            subject_ids = request.POST.getlist('subjects[]')
+            teacher_ids = request.POST.getlist('teachers[]')
+            coefficients = request.POST.getlist('coefficients[]')
 
-            for subject_id in subjects:
-                subject = Subject.objects.get(pk=subject_id)
-                subject.classes.add(class_obj)
-                print(f"Matière ajoutée: {subject.name}")
+            print(f"Matières: {subject_ids}")
+            print(f"Enseignants: {teacher_ids}")
+            print(f"Coefficients: {coefficients}")
 
-            messages.success(request, f'Classe {class_obj.name} créée avec succès')
+            # Importer le modèle SubjectClass
+            from .models import SubjectClass
+
+            # Créer les associations matière-classe avec enseignant et coefficient
+            for i, subject_id in enumerate(subject_ids):
+                if subject_id:  # Si une matière est sélectionnée
+                    subject = Subject.objects.get(pk=subject_id)
+                    teacher_id_for_subject = teacher_ids[i] if i < len(teacher_ids) else None
+                    coefficient = int(coefficients[i]) if i < len(coefficients) and coefficients[i] else 1
+
+                    # Ajouter la classe à la matière
+                    subject.classes.add(class_obj)
+
+                    # Créer l'entrée SubjectClass avec l'enseignant et le coefficient
+                    SubjectClass.objects.create(
+                        subject=subject,
+                        classe=class_obj,
+                        teacher_id=teacher_id_for_subject if teacher_id_for_subject else None,
+                        coefficient=coefficient
+                    )
+
+                    teacher_name = Teacher.objects.get(pk=teacher_id_for_subject).name if teacher_id_for_subject else "Non assigné"
+                    print(f"Matière ajoutée: {subject.name} - Prof: {teacher_name} - Coef: {coefficient}")
+
+            messages.success(request, f'Classe {class_obj.name} créée avec succès avec {len(subject_ids)} matière(s)')
             print("=== FIN CREATION CLASSE - SUCCESS ===")
             return redirect('classes_list')
         except Exception as e:
@@ -449,142 +474,113 @@ def subject_create(request):
 
 @login_required
 def grades_list(request):
-    """Gestion des notes"""
+    """Gestion des notes - Saisie groupée par classe et matière"""
 
-    # Gérer l'ajout de note depuis la modale
+    # Gérer la saisie groupée des notes
     if request.method == 'POST':
-        print("=== DEBUT AJOUT NOTE ===")
+        print("=== DEBUT SAISIE GROUPEE NOTES ===")
         print("POST data:", request.POST)
 
         try:
-            student_id = request.POST.get('student')
+            classe_id = request.POST.get('classe')
             subject_id = request.POST.get('subject')
-            score = float(request.POST.get('score'))
+            assignment_name = request.POST.get('assignment_name')
             evaluation_type = request.POST.get('evaluation_type', 'devoir')
             coefficient = int(request.POST.get('coefficient', 1))
             date_str = request.POST.get('date')
-            observations = request.POST.get('observations', '')
 
-            print(f"Student: {student_id}, Subject: {subject_id}, Score: {score}")
+            print(f"Classe: {classe_id}, Matière: {subject_id}")
+            print(f"Devoir: {assignment_name}, Type: {evaluation_type}")
 
-            student = Student.objects.get(pk=student_id)
             subject = Subject.objects.get(pk=subject_id)
+            classe = Class.objects.get(pk=classe_id)
 
-            # Créer un assignment
-            from datetime import datetime
+            # Créer l'assignment pour cette évaluation
             assignment = Assignment.objects.create(
-                name=f'{subject.name} - {evaluation_type}',
-                description=observations,
+                name=assignment_name,
                 subject=subject,
+                evaluation_type=evaluation_type,
+                coefficient=coefficient,
                 due_date=datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else datetime.now().date(),
                 points=20
             )
 
-            # Créer la note
-            mark = Mark.objects.create(
-                student=student,
-                assignment=assignment,
-                score=score,
-                date=datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else datetime.now().date()
-            )
+            # Enregistrer les notes pour chaque élève
+            notes_saved = 0
+            for key, value in request.POST.items():
+                if key.startswith('score_'):
+                    student_id = key.replace('score_', '')
+                    score = value.strip()
 
-            print(f"Note créée: {mark.id}")
-            messages.success(request, f'Note de {score}/20 ajoutée pour {student.name} {student.first_name}')
-            print("=== FIN AJOUT NOTE - SUCCESS ===")
-            return redirect('grades_list')
+                    if score:  # Si une note a été saisie
+                        student = Student.objects.get(pk=student_id)
+                        Mark.objects.create(
+                            student=student,
+                            assignment=assignment,
+                            score=float(score),
+                            date=assignment.due_date
+                        )
+                        notes_saved += 1
+                        print(f"Note enregistrée: {student.name} - {score}/20")
+
+            print(f"=== {notes_saved} notes enregistrées ===")
+            messages.success(request, f'{notes_saved} note(s) enregistrée(s) avec succès pour {assignment_name}')
+            return redirect(f'/portal/grades/?class={classe_id}&subject={subject_id}')
 
         except Exception as e:
             print(f"=== ERREUR: {str(e)} ===")
             import traceback
             traceback.print_exc()
-            messages.error(request, f'Erreur lors de l\'ajout de la note: {str(e)}')
+            messages.error(request, f'Erreur lors de la saisie des notes: {str(e)}')
 
     classes = Class.objects.all()
-    subjects = Subject.objects.all()
+    all_subjects = Subject.objects.all()
 
     selected_class = request.GET.get('class')
     selected_subject = request.GET.get('subject')
 
-    students = []
-    subjects_list = []
+    students_list = []
+    class_obj = None
+    subject_obj = None
+    class_subjects = []
 
+    # Si une classe est sélectionnée, récupérer ses matières et élèves
     if selected_class:
         class_obj = get_object_or_404(Class, pk=selected_class)
-        students_query = class_obj.students.all()
-        subjects_list_raw = class_obj.subject_set.all()
+        class_subjects = class_obj.subject_set.all()
 
-        # Ajouter short_name aux matières
-        subjects_list = []
-        for subject in subjects_list_raw:
-            subjects_list.append({
-                'id': subject.id,
-                'name': subject.name,
-                'short_name': subject.name[:4].upper() if len(subject.name) > 4 else subject.name.upper(),
-            })
+        # Si une matière est aussi sélectionnée, afficher les élèves
+        if selected_subject:
+            subject_obj = get_object_or_404(Subject, pk=selected_subject)
+            students_query = class_obj.students.all().order_by('name', 'first_name')
 
-        # Préparer les données pour le tableau
-        for student in students_query:
-            grades = []
-            total_points = 0
-            total_coefficients = 0
-
-            for subject_data in subjects_list:
-                # Récupérer la note pour cette matière
-                mark = Mark.objects.filter(
+            for student in students_query:
+                # Récupérer les notes existantes pour cette matière
+                marks = Mark.objects.filter(
                     student=student,
-                    assignment__subject_id=subject_data['id']
-                ).first()
+                    assignment__subject=subject_obj
+                ).select_related('assignment').order_by('-date')
 
-                grade_data = {
-                    'subject_id': subject_data['id'],
-                    'score': mark.score if mark else None
-                }
-                grades.append(grade_data)
-
-                if mark:
-                    coefficient = 1  # À remplacer par le vrai coefficient
-                    total_points += mark.score * coefficient
-                    total_coefficients += coefficient
-
-            # Calculer la moyenne
-            average = round(total_points / total_coefficients, 2) if total_coefficients > 0 else None
-
-            students.append({
-                'id': student.id,
-                'name': f'{student.name} {student.first_name}',
-                'matricule': f'ET-{student.id:04d}',
-                'class': class_obj.name,
-                'grades': grades,
-                'average': average,
-                'rank': None,  # À calculer
-            })
-
-        # Calculer les rangs
-        students_sorted = sorted([s for s in students if s['average']],
-                                key=lambda x: x['average'], reverse=True)
-        for rank, student in enumerate(students_sorted, 1):
-            for s in students:
-                if s['id'] == student['id']:
-                    s['rank'] = rank
-
-    # Statistiques
-    class_average = None
-    if students and any(s['average'] for s in students):
-        averages = [s['average'] for s in students if s['average']]
-        class_average = round(sum(averages) / len(averages), 2) if averages else None
+                students_list.append({
+                    'id': student.id,
+                    'matricule': student.matricule,
+                    'name': student.name,
+                    'first_name': student.first_name,
+                    'full_name': f'{student.name} {student.first_name}',
+                    'marks': marks,  # Historique des notes
+                    'latest_mark': marks.first().score if marks.exists() else None,
+                })
 
     context = {
         'classes': classes,
-        'subjects': subjects,
-        'students': students,
-        'subjects_list': subjects_list,
+        'all_subjects': all_subjects,
+        'class_subjects': class_subjects,
+        'students_list': students_list,
         'selected_class': int(selected_class) if selected_class else None,
         'selected_subject': int(selected_subject) if selected_subject else None,
-        'class_average': class_average,
-        'highest_grade': max([s['average'] for s in students if s['average']], default=None),
-        'total_grades': Mark.objects.count(),
-        'all_students': Student.objects.all(),
-        'all_subjects': subjects,
+        'class_obj': class_obj,
+        'subject_obj': subject_obj,
+        'total_students': len(students_list),
     }
     return render(request, 'grades/grades_list.html', context)
 
@@ -661,11 +657,34 @@ def generate_bulletins(request):
 
 @login_required
 def reports_list(request):
-    """Liste des bulletins"""
+    """Liste des bulletins avec options d'export"""
+    # Filtres
+    selected_class = request.GET.get('class')
+    search = request.GET.get('search', '')
+
     students = Student.objects.all()
+
+    # Filtrer par classe (relation inverse via Class.students)
+    if selected_class:
+        students = students.filter(class__id=selected_class)
+
+    # Filtrer par recherche
+    if search:
+        students = students.filter(
+            Q(name__icontains=search) |
+            Q(first_name__icontains=search) |
+            Q(matricule__icontains=search)
+        )
+
+    students = students.order_by('name', 'first_name')
+
+    classes = Class.objects.all()
 
     context = {
         'students': students,
+        'classes': classes,
+        'selected_class': int(selected_class) if selected_class else None,
+        'search': search,
     }
     return render(request, 'grades/reports_list.html', context)
 
@@ -675,10 +694,16 @@ def report_card(request, student_id):
     """Bulletin de notes d'un étudiant"""
     student = get_object_or_404(Student, pk=student_id)
 
+    # Récupérer la classe de l'élève (relation ManyToMany inverse)
+    student_class = student.class_set.first()
+
     # Récupérer toutes les notes de l'étudiant
     marks = Mark.objects.filter(student=student).select_related(
         'assignment__subject', 'assignment__subject__teacher'
     )
+
+    # Importer le modèle SubjectClass
+    from .models import SubjectClass
 
     # Organiser les notes par matière
     grades = []
@@ -689,12 +714,28 @@ def report_card(request, student_id):
     for mark in marks:
         subject = mark.assignment.subject
         if subject.name not in subjects_dict:
+            # Récupérer le coefficient de la matière pour cette classe
+            coefficient = 1  # Valeur par défaut
+            teacher_name = subject.teacher.name if subject.teacher else 'N/A'
+
+            if student_class:
+                # Chercher le coefficient dans SubjectClass
+                try:
+                    subject_class = SubjectClass.objects.get(subject=subject, classe=student_class)
+                    coefficient = subject_class.coefficient
+                    # Utiliser l'enseignant spécifique à la classe si défini
+                    if subject_class.teacher:
+                        teacher_name = f"{subject_class.teacher.name} {subject_class.teacher.first_name}"
+                except SubjectClass.DoesNotExist:
+                    # Utiliser le coefficient par défaut
+                    pass
+
             subjects_dict[subject.name] = {
                 'subject': subject.name,
-                'teacher': subject.teacher.name if subject.teacher else 'N/A',
-                'coefficient': 1,  # À adapter
+                'teacher': teacher_name,
+                'coefficient': coefficient,
                 'score': mark.score,
-                'total': mark.score * 1,
+                'total': round(mark.score * coefficient, 2),
                 'rank': None,
             }
 
@@ -719,30 +760,168 @@ def report_card(request, student_id):
     else:
         appreciation = "Résultats insuffisants. Travail et concentration nécessaires."
 
+    # Calculer le rang dans la classe
+    rank = None
+    class_size = 0
+    if student_class:
+        # Récupérer tous les élèves de la classe avec leurs moyennes
+        class_students = student_class.students.all()
+        class_size = class_students.count()
+
+        # Calculer les moyennes de tous les élèves (simplifié)
+        # Pour un calcul précis, il faudrait calculer la moyenne de chaque élève
+        # TODO: Améliorer le calcul du rang
+
+    # Récupérer les paramètres de l'école
+    from .models import SchoolSettings
+    try:
+        school_settings = SchoolSettings.objects.first()
+    except:
+        school_settings = None
+
     context = {
         'student': {
-            'full_name': f'{student.name} {student.first_name} {student.surname}',
-            'matricule': f'ET-{student.id:04d}',
-            'class': 'Terminale S1',  # À adapter
+            'full_name': f'{student.name} {student.first_name} {student.surname if student.surname else ""}',
+            'matricule': student.matricule if student.matricule else f'ET-{student.id:04d}',
+            'class': student_class.name if student_class else 'Non assigné',
             'birth_date': student.birth_date,
         },
         'grades': grades,
-        'total_points': total_points,
+        'total_points': round(total_points, 2),
         'total_coefficients': total_coefficients,
         'average': average,
-        'rank': None,  # À calculer
-        'class_size': 45,  # À adapter
+        'rank': rank,
+        'class_size': class_size,
         'appreciation': appreciation,
-        'school_name': 'ÉCOLE SECONDAIRE',
-        'school_address': 'Ouagadougou, Burkina Faso',
-        'school_phone': '+226 XX XX XX XX',
+        'school_name': school_settings.name if school_settings else 'ÉCOLE SECONDAIRE',
+        'school_address': school_settings.address if school_settings else 'Ouagadougou, Burkina Faso',
+        'school_phone': school_settings.phone if school_settings else '+226 XX XX XX XX',
+        'school_logo': school_settings.logo.url if school_settings and school_settings.logo else None,
         'academic_year': '2024-2025',
-        'period': 'Trimestre 1',
-        'class_teacher': 'M. OUEDRAOGO',
-        'total_days': 60,
-        'absences': 2,
-        'tardies': 1,
+        'period': '1er Trimestre',
+        'class_teacher': student_class.teacher.name if student_class and student_class.teacher else 'Non assigné',
+        'absences': None,
+        'tardies': None,
         'current_date': datetime.now(),
     }
 
     return render(request, 'grades/report_card.html', context)
+
+
+@login_required
+def bulk_report_cards(request):
+    """Génération en masse des bulletins pour une classe"""
+    class_id = request.GET.get('class')
+
+    if not class_id:
+        messages.error(request, 'Veuillez sélectionner une classe')
+        return redirect('reports_list')
+
+    class_obj = get_object_or_404(Class, pk=class_id)
+    students = class_obj.students.all().order_by('name', 'first_name')
+
+    if not students.exists():
+        messages.warning(request, 'Aucun élève dans cette classe')
+        return redirect('reports_list')
+
+    # Générer les données pour tous les élèves
+    bulletins = []
+    from .models import SchoolSettings
+
+    # Obtenir ou créer les paramètres de l'école
+    school_settings, _ = SchoolSettings.objects.get_or_create(
+        defaults={
+            'name': 'ÉCOLE SECONDAIRE',
+            'address': 'Ouagadougou, Burkina Faso',
+            'phone': '+226 XX XX XX XX'
+        }
+    )
+
+    for student in students:
+        student_class = student.class_set.first()
+        marks = Mark.objects.filter(student=student).select_related(
+            'assignment__subject', 'assignment__subject__teacher'
+        )
+
+        from .models import SubjectClass
+
+        grades = []
+        total_points = 0
+        total_coefficients = 0
+
+        subjects_dict = {}
+        for mark in marks:
+            subject = mark.assignment.subject
+            if subject.name not in subjects_dict:
+                coefficient = 1
+                teacher_name = subject.teacher.name if subject.teacher else 'N/A'
+
+                if student_class:
+                    try:
+                        subject_class = SubjectClass.objects.get(subject=subject, classe=student_class)
+                        coefficient = subject_class.coefficient
+                        if subject_class.teacher:
+                            teacher_name = f"{subject_class.teacher.name} {subject_class.teacher.first_name}"
+                    except SubjectClass.DoesNotExist:
+                        pass
+
+                subjects_dict[subject.name] = {
+                    'subject': subject.name,
+                    'teacher': teacher_name,
+                    'coefficient': coefficient,
+                    'score': mark.score,
+                    'total': round(mark.score * coefficient, 2),
+                    'rank': None,
+                }
+
+        grades = list(subjects_dict.values())
+
+        for grade in grades:
+            total_points += grade['total']
+            total_coefficients += grade['coefficient']
+
+        average = round(total_points / total_coefficients, 2) if total_coefficients > 0 else 0
+
+        if average >= 16:
+            appreciation = "Excellent élève. Travail remarquable. Continuez ainsi!"
+        elif average >= 14:
+            appreciation = "Très bon élève. Résultats très satisfaisants. Poursuivez vos efforts."
+        elif average >= 12:
+            appreciation = "Bon élève. Travail sérieux. Peut mieux faire."
+        elif average >= 10:
+            appreciation = "Travail satisfaisant. Efforts à poursuivre."
+        else:
+            appreciation = "Résultats insuffisants. Travail et concentration nécessaires."
+
+        bulletins.append({
+            'student': {
+                'full_name': f'{student.name} {student.first_name} {student.surname if student.surname else ""}',
+                'matricule': student.matricule if student.matricule else f'ET-{student.id:04d}',
+                'class': student_class.name if student_class else 'Non assigné',
+                'birth_date': student.birth_date,
+                'absence': getattr(student, 'absence', None),
+                'retard': getattr(student, 'retard', None),
+            },
+            'grades': grades,
+            'total_points': round(total_points, 2),
+            'total_coefficient': total_coefficients,
+            'average': average,
+            'appreciation': appreciation,
+            'rank': None,  # Rang à calculer si besoin
+            'class_size': students.count(),
+        })
+
+    context = {
+        'bulletins': bulletins,
+        'class_obj': class_obj,
+        'class_name': class_obj.name,
+        'school_settings': school_settings,
+        'current_year': '2024-2025',
+        'academic_year': '2024-2025',
+        'period': '1er Trimestre',
+        'class_teacher': class_obj.teacher.name if class_obj.teacher else 'Non assigné',
+        'class_size': students.count(),
+        'current_date': datetime.now(),
+    }
+
+    return render(request, 'grades/bulk_report_cards.html', context)

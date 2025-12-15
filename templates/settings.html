@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Paramètres de l'École - Gestion d'École{% endblock %}
+
+{% block content %}
+<div class="settings-page">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1">Paramètres de l'École</h1>
+            <p class="text-muted mb-0">Configurez les informations de votre établissement</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <!-- Informations de base -->
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-school me-2"></i>Informations de Base</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold">Nom de l'École <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="name"
+                                       value="{{ school_settings.name }}" required>
+                            </div>
+
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold">Adresse <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="address"
+                                       value="{{ school_settings.address }}" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Téléphone <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="phone"
+                                       value="{{ school_settings.phone }}" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Email</label>
+                                <input type="email" class="form-control" name="email"
+                                       value="{{ school_settings.email|default:'' }}"
+                                       placeholder="contact@ecole.bf">
+                            </div>
+
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold">Site Web</label>
+                                <input type="url" class="form-control" name="website"
+                                       value="{{ school_settings.website|default:'' }}"
+                                       placeholder="https://www.ecole.bf">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Logo et Branding -->
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-image me-2"></i>Logo et Branding</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Logo de l'École</label>
+                                {% if school_settings.logo %}
+                                <div class="mb-3">
+                                    <img src="{{ school_settings.logo.url }}"
+                                         alt="Logo actuel"
+                                         class="img-thumbnail"
+                                         style="max-width: 200px; max-height: 200px;">
+                                    <p class="text-muted small mt-2">Logo actuel</p>
+                                </div>
+                                {% endif %}
+                                <input type="file" class="form-control" name="logo" accept="image/*">
+                                <small class="text-muted">Formats acceptés: JPG, PNG. Taille recommandée: 200x200 pixels</small>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Devise de l'École</label>
+                                <textarea class="form-control" name="motto" rows="3"
+                                          placeholder="Ex: Excellence et Discipline">{{ school_settings.motto|default:'' }}</textarea>
+                                <small class="text-muted">Slogan ou devise de votre établissement</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Direction -->
+                <div class="card mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-user-tie me-2"></i>Direction</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold">Nom du Directeur</label>
+                                <input type="text" class="form-control" name="director_name"
+                                       value="{{ school_settings.director_name|default:'' }}"
+                                       placeholder="M. Jean OUEDRAOGO">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Boutons d'action -->
+                <div class="d-flex gap-2 justify-content-end mb-4">
+                    <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+                        <i class="fas fa-times me-2"></i>Annuler
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-save me-2"></i>Enregistrer les Paramètres
+                    </button>
+                </div>
+            </form>
+
+            <!-- Informations complémentaires -->
+            <div class="card border-info">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="fas fa-info-circle text-info me-2"></i>Informations Importantes
+                    </h6>
+                    <ul class="mb-0 small text-muted">
+                        <li>Ces informations seront affichées sur tous les bulletins de notes</li>
+                        <li>Le logo apparaîtra en haut à gauche des bulletins</li>
+                        <li>Assurez-vous que toutes les informations sont correctes avant impression</li>
+                        <li>Les modifications sont appliquées immédiatement</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Prévisualisation du logo avant upload
+document.querySelector('input[name="logo"]')?.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.createElement('div');
+            preview.className = 'mt-3';
+            preview.innerHTML = `
+                <p class="text-muted small mb-2">Aperçu du nouveau logo:</p>
+                <img src="${e.target.result}" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">
+            `;
+
+            // Supprimer l'ancien aperçu s'il existe
+            const oldPreview = document.querySelector('.logo-preview');
+            if (oldPreview) oldPreview.remove();
+
+            preview.classList.add('logo-preview');
+            e.target.parentElement.appendChild(preview);
+        };
+        reader.readAsDataURL(file);
+    }
+});
+</script>
+{% endblock %}

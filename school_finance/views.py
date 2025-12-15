@@ -1,7 +1,10 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from school_portal.models import Student, Class
+from django.http import JsonResponse
+from school_portal.models import Student, Class, Enrollment
+import datetime
+import json
 
 
 # ===================================
@@ -117,50 +120,141 @@ def payment_edit(request, pk):
 @login_required
 def enrollments_list(request):
     """Liste des inscriptions"""
+    enrollments = Enrollment.objects.select_related('student', 'classe').all()
 
-    # Données simulées
-    enrollments = [
-        {
-            'id': 1,
-            'student_name': 'Jean KABORE',
-            'class_name': 'Terminale S1',
-            'type': 'Réinscription',
-            'amount': 200000,
-            'date': '2024-09-01',
-            'status': 'completed'
-        },
-        {
-            'id': 2,
-            'student_name': 'Marie TRAORE',
-            'class_name': 'Première L2',
-            'type': 'Inscription',
-            'amount': 250000,
-            'date': '2024-09-05',
-            'status': 'pending'
-        },
-    ]
+    # Filtres
+    search = request.GET.get('search', '')
+    enrollment_type = request.GET.get('type', '')
+    status = request.GET.get('status', '')
+
+    if search:
+        enrollments = enrollments.filter(
+            student__name__icontains=search
+        ) | enrollments.filter(
+            student__first_name__icontains=search
+        ) | enrollments.filter(
+            student__matricule__icontains=search
+        )
+
+    if enrollment_type:
+        enrollments = enrollments.filter(enrollment_type=enrollment_type)
+
+    if status:
+        enrollments = enrollments.filter(status=status)
 
     context = {
         'enrollments': enrollments,
-        'total_enrollments': len(enrollments),
+        'total_enrollments': Enrollment.objects.count(),
+        'new_enrollments': Enrollment.objects.filter(enrollment_type='inscription').count(),
+        'reinrollments': Enrollment.objects.filter(enrollment_type='reinscription').count(),
     }
     return render(request, 'finance/enrollments_list.html', context)
 
 
 @login_required
 def enrollment_create(request):
-    """Créer une nouvelle inscription"""
+    """Créer une nouvelle inscription (avec création d'élève si nécessaire)"""
     if request.method == 'POST':
         try:
-            messages.success(request, 'Inscription enregistrée avec succès')
+            enrollment_type = request.POST.get('enrollment_type')
+
+            # Réinscription : chercher l'élève par matricule
+            if enrollment_type == 'reinscription':
+                matricule = request.POST.get('matricule')
+                if not matricule:
+                    messages.error(request, 'Le matricule est requis pour une réinscription')
+                    return redirect('enrollment_create')
+
+                try:
+                    student = Student.objects.get(matricule=matricule)
+                except Student.DoesNotExist:
+                    messages.error(request, f'Aucun élève trouvé avec le matricule {matricule}')
+                    return redirect('enrollment_create')
+
+            # Nouvelle inscription : créer l'élève
+            else:
+                student = Student.objects.create(
+                    name=request.POST.get('name'),
+                    first_name=request.POST.get('first_name'),
+                    surname=request.POST.get('surname', ''),
+                    birth_date=request.POST.get('birth_date'),
+                    email=request.POST.get('email', ''),
+                    phone=request.POST.get('phone'),
+                    address=request.POST.get('address')
+                )
+
+            # Créer l'inscription
+            classe = Class.objects.get(id=request.POST.get('classe'))
+
+            # Gérer le montant optionnel
+            amount = request.POST.get('amount', '')
+            amount = float(amount) if amount else None
+
+            enrollment = Enrollment.objects.create(
+                student=student,
+                classe=classe,
+                enrollment_type=enrollment_type,
+                academic_year=request.POST.get('academic_year'),
+                amount=amount,
+                enrollment_date=request.POST.get('enrollment_date'),
+                status=request.POST.get('status', 'completed'),
+                payment_method=request.POST.get('payment_method', ''),
+                reference=request.POST.get('reference', ''),
+                notes=request.POST.get('notes', '')
+            )
+
+            # Assigner l'élève à la classe
+            classe.students.add(student)
+
+            messages.success(
+                request,
+                f'Inscription enregistrée avec succès ! Matricule: {student.matricule}'
+            )
             return redirect('enrollments_list')
+
         except Exception as e:
             messages.error(request, f'Erreur: {str(e)}')
+            return redirect('enrollment_create')
 
-    students = Student.objects.all()
     classes = Class.objects.all()
-    context = {'students': students, 'classes': classes}
+    current_year = datetime.date.today().year
+    academic_year = f"{current_year}-{current_year + 1}"
+
+    context = {
+        'classes': classes,
+        'academic_year': academic_year
+    }
     return render(request, 'finance/enrollment_form.html', context)
+
+
+@login_required
+def get_student_by_matricule(request):
+    """API pour récupérer les infos d'un élève par matricule (AJAX)"""
+    matricule = request.GET.get('matricule', '')
+
+    try:
+        student = Student.objects.get(matricule=matricule)
+        data = {
+            'success': True,
+            'student': {
+                'matricule': student.matricule,
+                'name': student.name,
+                'first_name': student.first_name,
+                'surname': student.surname or '',
+                'birth_date': student.birth_date.strftime('%Y-%m-%d'),
+                'email': student.email or '',
+                'phone': student.phone,
+                'address': student.address,
+                'classe': student.classe.name if student.classe else ''
+            }
+        }
+    except Student.DoesNotExist:
+        data = {
+            'success': False,
+            'message': 'Aucun élève trouvé avec ce matricule'
+        }
+
+    return JsonResponse(data)
 
 
 # ===================================
