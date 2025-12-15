@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Liste des Enseignants - Gestion d'École{% endblock %}
+
+{% block content %}
+<div class="teachers-page">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1">Liste des Enseignants</h1>
+            <p class="text-muted mb-0">Gestion du corps enseignant</p>
+        </div>
+        <div>
+            <a href="{% url 'teacher_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Nouvel Enseignant
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-4">
+            <div class="stat-card success">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="stat-label">Total Enseignants</p>
+                        <h3 class="stat-value">{{ total_teachers|default:"0" }}</h3>
+                    </div>
+                    <div class="stat-icon success">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Teachers Table -->
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Nom Complet</th>
+                            <th>Date de Naissance</th>
+                            <th>Email</th>
+                            <th>Téléphone</th>
+                            <th>Classes</th>
+                            <th>Matières</th>
+                            <th width="10%">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for teacher in teachers %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="user-avatar me-2">
+                                        <i class="fas fa-user-tie text-success"></i>
+                                    </div>
+                                    <div class="fw-semibold">
+                                        {{ teacher.name }} {{ teacher.first_name }}{% if teacher.surname %} {{ teacher.surname }}{% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ teacher.birth_date|date:"d/m/Y" }}</td>
+                            <td>{{ teacher.email|default:"-" }}</td>
+                            <td>{{ teacher.phone }}</td>
+                            <td>
+                                <span class="badge bg-primary">{{ teacher.classes_count }} classe(s)</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ teacher.subjects_count }} matière(s)</span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'teacher_detail' teacher.id %}"
+                                       class="btn btn-outline-primary" title="Voir">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="#"
+                                       class="btn btn-outline-secondary" title="Modifier">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5">
+                                <i class="fas fa-chalkboard-teacher fa-4x text-muted mb-3"></i>
+                                <p class="text-muted mb-0">Aucun enseignant trouvé</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

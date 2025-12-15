@@ -1,0 +1,447 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Bulletin de Notes - {{ student.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+@media print {
+    .sidebar, .top-header, .no-print {
+        display: none !important;
+    }
+
+    .main-content {
+        margin-left: 0 !important;
+    }
+
+    .report-card {
+        box-shadow: none !important;
+        padding: 0 !important;
+    }
+
+    body {
+        background: white !important;
+    }
+}
+
+.report-card {
+    background: white;
+    max-width: 900px;
+    margin: 0 auto;
+    box-shadow: var(--shadow-xl);
+}
+
+.report-header {
+    border-bottom: 3px solid var(--primary);
+    padding: 2rem;
+    position: relative;
+}
+
+.school-logo {
+    width: 80px;
+    height: 80px;
+    background: var(--gray-200);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: var(--primary);
+}
+
+.report-title {
+    text-align: center;
+    margin: 2rem 0;
+}
+
+.report-title h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 0.5rem;
+}
+
+.student-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    background: var(--gray-50);
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    margin: 2rem 0;
+}
+
+.info-item {
+    display: flex;
+    align-items: start;
+    gap: 0.75rem;
+}
+
+.info-label {
+    font-weight: 600;
+    color: var(--gray-700);
+    min-width: 120px;
+}
+
+.info-value {
+    color: var(--gray-900);
+}
+
+.grades-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 2rem 0;
+}
+
+.grades-table thead {
+    background: var(--primary);
+    color: white;
+}
+
+.grades-table th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+}
+
+.grades-table th.text-center,
+.grades-table td.text-center {
+    text-align: center;
+}
+
+.grades-table tbody tr {
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.grades-table tbody tr:hover {
+    background: var(--gray-50);
+}
+
+.grades-table td {
+    padding: 0.875rem 1rem;
+}
+
+.subject-name {
+    font-weight: 500;
+    color: var(--gray-900);
+}
+
+.teacher-name {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+}
+
+.grade-value {
+    font-weight: 600;
+    font-size: 1.125rem;
+}
+
+.grade-excellent {
+    color: var(--success);
+}
+
+.grade-good {
+    color: var(--info);
+}
+
+.grade-average {
+    color: var(--warning);
+}
+
+.grade-poor {
+    color: var(--danger);
+}
+
+.summary-section {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 0.75rem;
+    margin: 2rem 0;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.summary-item {
+    text-align: center;
+}
+
+.summary-label {
+    font-size: 0.875rem;
+    opacity: 0.9;
+    margin-bottom: 0.5rem;
+}
+
+.summary-value {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.appreciation-section {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: var(--gray-50);
+    border-left: 4px solid var(--primary);
+    border-radius: 0.5rem;
+}
+
+.appreciation-title {
+    font-weight: 600;
+    color: var(--gray-900);
+    margin-bottom: 0.5rem;
+}
+
+.appreciation-text {
+    color: var(--gray-700);
+    line-height: 1.8;
+}
+
+.signatures-section {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 2px solid var(--gray-200);
+}
+
+.signature-box {
+    text-align: center;
+}
+
+.signature-line {
+    border-top: 2px solid var(--gray-900);
+    margin: 3rem auto 0.5rem;
+    width: 80%;
+}
+
+.signature-label {
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+.footer-note {
+    text-align: center;
+    margin-top: 2rem;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--gray-600);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="no-print mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="h2 mb-1">Bulletin de Notes</h1>
+            <p class="text-muted mb-0">{{ student.name }} - {{ student.class }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'grades_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Retour
+            </a>
+            <button onclick="window.print()" class="btn btn-primary">
+                <i class="fas fa-print me-2"></i>Imprimer
+            </button>
+            <button onclick="exportToPDF()" class="btn btn-success">
+                <i class="fas fa-file-pdf me-2"></i>Exporter PDF
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="report-card p-4" id="reportCard">
+    <!-- Header -->
+    <div class="report-header">
+        <div class="d-flex justify-content-between align-items-start">
+            <div class="school-logo">
+                <i class="fas fa-graduation-cap"></i>
+            </div>
+            <div class="text-end">
+                <h3 class="mb-1">{{ school_name|default:"ÉCOLE SECONDAIRE" }}</h3>
+                <p class="mb-0 text-muted">{{ school_address|default:"Ouagadougou, Burkina Faso" }}</p>
+                <p class="mb-0 text-muted">Tél: {{ school_phone|default:"+226 XX XX XX XX" }}</p>
+            </div>
+        </div>
+
+        <div class="report-title">
+            <h1>BULLETIN DE NOTES</h1>
+            <p class="text-muted mb-0">Année Académique {{ academic_year|default:"2024-2025" }} - {{ period|default:"Trimestre 1" }}</p>
+        </div>
+    </div>
+
+    <!-- Student Information -->
+    <div class="p-4">
+        <div class="student-info-grid">
+            <div class="info-item">
+                <span class="info-label">Nom Complet:</span>
+                <span class="info-value">{{ student.full_name|default:"KABORE Jean Baptiste" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Matricule:</span>
+                <span class="info-value">{{ student.matricule|default:"ET-2024-001" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Classe:</span>
+                <span class="info-value">{{ student.class|default:"Terminale S1" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Date de Naissance:</span>
+                <span class="info-value">{{ student.birth_date|date:"d/m/Y"|default:"15/03/2007" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Enseignant:</span>
+                <span class="info-value">{{ class_teacher|default:"M. OUEDRAOGO Paul" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Effectif Classe:</span>
+                <span class="info-value">{{ class_size|default:"45" }} élèves</span>
+            </div>
+        </div>
+
+        <!-- Grades Table -->
+        <table class="grades-table">
+            <thead>
+                <tr>
+                    <th width="30%">Matière</th>
+                    <th width="20%">Enseignant</th>
+                    <th class="text-center" width="10%">Coef.</th>
+                    <th class="text-center" width="10%">Note /20</th>
+                    <th class="text-center" width="10%">Total</th>
+                    <th class="text-center" width="10%">Rang</th>
+                    <th width="10%">Appréciation</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for grade in grades %}
+                <tr>
+                    <td>
+                        <div class="subject-name">{{ grade.subject }}</div>
+                    </td>
+                    <td>
+                        <div class="teacher-name">{{ grade.teacher }}</div>
+                    </td>
+                    <td class="text-center fw-semibold">{{ grade.coefficient }}</td>
+                    <td class="text-center">
+                        <span class="grade-value
+                            {% if grade.score >= 16 %}grade-excellent
+                            {% elif grade.score >= 14 %}grade-good
+                            {% elif grade.score >= 10 %}grade-average
+                            {% else %}grade-poor{% endif %}">
+                            {{ grade.score }}
+                        </span>
+                    </td>
+                    <td class="text-center fw-semibold">{{ grade.total }}</td>
+                    <td class="text-center">{{ grade.rank|default:"-" }}</td>
+                    <td>
+                        <small>
+                            {% if grade.score >= 16 %}Excellent
+                            {% elif grade.score >= 14 %}Très Bien
+                            {% elif grade.score >= 12 %}Bien
+                            {% elif grade.score >= 10 %}Assez Bien
+                            {% else %}Insuffisant{% endif %}
+                        </small>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-4 text-muted">Aucune note disponible</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Summary -->
+        <div class="summary-section">
+            <h4 class="mb-0">Résumé des Résultats</h4>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="summary-label">Total Points</div>
+                    <div class="summary-value">{{ total_points|default:"295" }}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Total Coefficients</div>
+                    <div class="summary-value">{{ total_coefficients|default:"20" }}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Moyenne Générale</div>
+                    <div class="summary-value">{{ average|default:"14.75" }}/20</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Rang</div>
+                    <div class="summary-value">{{ rank|default:"5" }}/{{ class_size|default:"45" }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Appreciation -->
+        <div class="appreciation-section">
+            <div class="appreciation-title">Appréciation du Conseil de Classe:</div>
+            <div class="appreciation-text">
+                {{ appreciation|default:"Bon élève. Travail sérieux et régulier. Résultats encourageants. Continuez vos efforts pour maintenir ce niveau." }}
+            </div>
+        </div>
+
+        <!-- Attendance Stats -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="p-3 border rounded">
+                    <div class="text-muted mb-1">Jours de Classe</div>
+                    <div class="h4 mb-0">{{ total_days|default:"60" }}</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 border rounded">
+                    <div class="text-muted mb-1">Absences</div>
+                    <div class="h4 mb-0 text-warning">{{ absences|default:"3" }}</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 border rounded">
+                    <div class="text-muted mb-1">Retards</div>
+                    <div class="h4 mb-0 text-info">{{ tardies|default:"2" }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Signatures -->
+        <div class="signatures-section">
+            <div class="signature-box">
+                <div class="signature-line"></div>
+                <div class="signature-label">Le Directeur</div>
+            </div>
+            <div class="signature-box">
+                <div class="signature-line"></div>
+                <div class="signature-label">L'Enseignant</div>
+            </div>
+            <div class="signature-box">
+                <div class="signature-line"></div>
+                <div class="signature-label">Le Parent / Tuteur</div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer-note">
+            <p class="mb-1"><strong>Échelle de Notation:</strong> Excellent (16-20) | Très Bien (14-16) | Bien (12-14) | Assez Bien (10-12) | Insuffisant (&lt;10)</p>
+            <p class="mb-0">Document généré le {{ current_date|date:"d/m/Y à H:i" }}</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function exportToPDF() {
+    window.print();
+    // In production, use a library like jsPDF or server-side PDF generation
+}
+</script>
+{% endblock %}

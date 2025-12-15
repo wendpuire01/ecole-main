@@ -1,0 +1,21 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Manager</title>
+    <link rel="stylesheet" href="{% static 'main/css/main.css' %}">
+</head>
+<body>
+    <h1>Welcome to School</h1>
+    <ul>
+        {% for anonce in anonces %}
+        <li>
+            <h3>{{ anonce }}</h3>
+            <textarea readonly>{{ anonce.description }}</textarea>
+        </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

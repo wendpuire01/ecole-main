@@ -1,0 +1,403 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Gestion des Classes - Gestion d'École{% endblock %}
+
+{% block content %}
+<div class="classes-page">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1">Gestion des Classes</h1>
+            <p class="text-muted mb-0">Organisation et suivi des classes</p>
+        </div>
+        <div>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addClassModal">
+                <i class="fas fa-plus me-2"></i>Nouvelle Classe
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-3">
+            <div class="stat-card primary">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="stat-label">Total Classes</p>
+                        <h3 class="stat-value">{{ total_classes|default:"45" }}</h3>
+                    </div>
+                    <div class="stat-icon primary">
+                        <i class="fas fa-chalkboard-user"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3">
+            <div class="stat-card success">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="stat-label">Total Étudiants</p>
+                        <h3 class="stat-value">{{ total_students|default:"1,234" }}</h3>
+                    </div>
+                    <div class="stat-icon success">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3">
+            <div class="stat-card info">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="stat-label">Enseignants</p>
+                        <h3 class="stat-value">{{ total_teachers|default:"78" }}</h3>
+                    </div>
+                    <div class="stat-icon info">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3">
+            <div class="stat-card warning">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="stat-label">Moyenne / Classe</p>
+                        <h3 class="stat-value">{{ avg_per_class|default:"27" }}</h3>
+                    </div>
+                    <div class="stat-icon warning">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Niveau</label>
+                    <select class="form-select" name="level">
+                        <option value="">Tous les niveaux</option>
+                        <option value="6eme">6ème</option>
+                        <option value="5eme">5ème</option>
+                        <option value="4eme">4ème</option>
+                        <option value="3eme">3ème</option>
+                        <option value="seconde">Seconde</option>
+                        <option value="premiere">Première</option>
+                        <option value="terminale">Terminale</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Série</label>
+                    <select class="form-select" name="series">
+                        <option value="">Toutes les séries</option>
+                        <option value="generale">Générale</option>
+                        <option value="s">Série S</option>
+                        <option value="l">Série L</option>
+                        <option value="d">Série D</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Recherche</label>
+                    <input type="text" class="form-control" name="search" placeholder="Nom de classe, enseignant...">
+                </div>
+                <div class="col-12 col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-2"></i>Filtrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Classes Grid -->
+    <div class="row g-4">
+        {% for class in classes %}
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="card class-card h-100">
+                <div class="card-header bg-gradient-primary text-white">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h5 class="mb-1">{{ class.name }}</h5>
+                            <small class="opacity-75">{{ class.level }}</small>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-link text-white" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'class_detail' class.id %}">
+                                        <i class="fas fa-eye me-2"></i>Voir Détails
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'class_edit' class.id %}">
+                                        <i class="fas fa-edit me-2"></i>Modifier
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item text-danger" href="#" data-action="delete">
+                                        <i class="fas fa-trash me-2"></i>Supprimer
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Teacher Info -->
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="teacher-avatar me-2">
+                                <i class="fas fa-user-tie text-primary"></i>
+                            </div>
+                            <div>
+                                <div class="fw-semibold">{{ class.teacher.name|default:"Non assigné" }}</div>
+                                <small class="text-muted">Enseignant titulaire</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <div class="mini-stat">
+                                <div class="mini-stat-icon bg-primary bg-opacity-10 text-primary">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="mini-stat-details">
+                                    <div class="mini-stat-value">{{ class.students_count|default:"0" }}</div>
+                                    <div class="mini-stat-label">Élèves</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="mini-stat">
+                                <div class="mini-stat-icon bg-info bg-opacity-10 text-info">
+                                    <i class="fas fa-book"></i>
+                                </div>
+                                <div class="mini-stat-details">
+                                    <div class="mini-stat-value">{{ class.subjects_count|default:"0" }}</div>
+                                    <div class="mini-stat-label">Matières</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Average -->
+                    <div class="class-average mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Moyenne Classe</span>
+                            <span class="badge
+                                {% if class.average >= 14 %}bg-success
+                                {% elif class.average >= 10 %}bg-warning
+                                {% else %}bg-danger{% endif %}"
+                                style="font-size: 0.875rem;">
+                                {{ class.average|default:"-" }}/20
+                            </span>
+                        </div>
+                        <div class="progress mt-2" style="height: 8px;">
+                            <div class="progress-bar
+                                {% if class.average >= 14 %}bg-success
+                                {% elif class.average >= 10 %}bg-warning
+                                {% else %}bg-danger{% endif %}"
+                                style="width: {{ class.average|default:0|floatformat:0 }}%;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subjects List -->
+                    <div class="subjects-list mb-3">
+                        <small class="text-muted d-block mb-2">Matières principales</small>
+                        <div class="d-flex flex-wrap gap-1">
+                            {% for subject in class.main_subjects %}
+                            <span class="badge bg-secondary">{{ subject.short_name }}</span>
+                            {% empty %}
+                            <small class="text-muted">Aucune matière assignée</small>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'class_students' class.id %}" class="btn btn-sm btn-outline-primary flex-fill">
+                            <i class="fas fa-users me-1"></i>Élèves
+                        </a>
+                        <a href="{% url 'class_grades' class.id %}" class="btn btn-sm btn-outline-success flex-fill">
+                            <i class="fas fa-clipboard-list me-1"></i>Notes
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-chalkboard-user fa-5x text-muted mb-4"></i>
+                    <h4 class="text-muted mb-3">Aucune classe trouvée</h4>
+                    <p class="text-muted mb-4">Commencez par créer votre première classe</p>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addClassModal">
+                        <i class="fas fa-plus me-2"></i>Créer une Classe
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Add Class Modal -->
+<div class="modal fade" id="addClassModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Nouvelle Classe</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{% url 'classes_list' %}" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Nom de la Classe <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="name"
+                                   placeholder="Ex: Terminale S1" required>
+                            <div class="invalid-feedback">
+                                Veuillez saisir le nom de la classe
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Niveau <span class="text-danger">*</span></label>
+                            <select class="form-select" name="level" required>
+                                <option value="">Sélectionner un niveau</option>
+                                <option value="6eme">6ème</option>
+                                <option value="5eme">5ème</option>
+                                <option value="4eme">4ème</option>
+                                <option value="3eme">3ème</option>
+                                <option value="Seconde">Seconde</option>
+                                <option value="Première">Première</option>
+                                <option value="Terminale">Terminale</option>
+                            </select>
+                            <div class="invalid-feedback">
+                                Veuillez sélectionner un niveau
+                            </div>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label">Enseignant Titulaire</label>
+                            <select class="form-select" name="teacher">
+                                <option value="">Sélectionner un enseignant (optionnel)</option>
+                                {% for teacher in teachers %}
+                                <option value="{{ teacher.id }}">
+                                    {{ teacher.name }} {{ teacher.first_name }}{% if teacher.surname %} {{ teacher.surname }}{% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Matières</label>
+                            <select class="form-select" name="subjects" multiple size="6">
+                                {% for subject in subjects %}
+                                <option value="{{ subject.id }}">{{ subject.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Maintenez Ctrl (ou Cmd sur Mac) pour sélectionner plusieurs matières</small>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 d-flex gap-2 justify-content-end">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Créer la Classe
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Form validation
+(function() {
+    'use strict';
+    var forms = document.querySelectorAll('.needs-validation');
+    Array.prototype.slice.call(forms).forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+})();
+</script>
+
+<style>
+.class-card {
+    transition: all 0.3s ease;
+}
+
+.class-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+}
+
+.teacher-avatar {
+    width: 40px;
+    height: 40px;
+    background: var(--gray-100);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.mini-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: var(--gray-50);
+    border-radius: 0.5rem;
+}
+
+.mini-stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.125rem;
+}
+
+.mini-stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--gray-900);
+}
+
+.mini-stat-label {
+    font-size: 0.75rem;
+    color: var(--gray-600);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Additional JS if needed
+</script>
+{% endblock %}

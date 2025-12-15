@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Liste des Matières - Gestion d'École{% endblock %}
+
+{% block content %}
+<div class="subjects-page">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1">Liste des Matières</h1>
+            <p class="text-muted mb-0">Gestion des matières enseignées</p>
+        </div>
+        <div>
+            <a href="{% url 'subject_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Nouvelle Matière
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-4">
+            <div class="stat-card info">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="stat-label">Total Matières</p>
+                        <h3 class="stat-value">{{ total_subjects|default:"0" }}</h3>
+                    </div>
+                    <div class="stat-icon info">
+                        <i class="fas fa-book-open"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subjects Grid -->
+    <div class="row g-4">
+        {% for subject in subjects %}
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="card h-100">
+                <div class="card-header bg-gradient-primary text-white">
+                    <h5 class="mb-0">{{ subject.name }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="teacher-avatar me-2">
+                                <i class="fas fa-user-tie text-primary"></i>
+                            </div>
+                            <div>
+                                <div class="fw-semibold">
+                                    {% if subject.teacher %}
+                                        {{ subject.teacher.name }} {{ subject.teacher.first_name }}
+                                    {% else %}
+                                        Non assigné
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">Enseignant</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <small class="text-muted d-block mb-2">Classes</small>
+                        <div class="d-flex flex-wrap gap-1">
+                            {% for class in subject.classes.all|slice:":5" %}
+                            <span class="badge bg-secondary">{{ class.name }}</span>
+                            {% empty %}
+                            <small class="text-muted">Aucune classe assignée</small>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <div class="d-flex gap-2">
+                        <a href="#" class="btn btn-sm btn-outline-primary flex-fill">
+                            <i class="fas fa-edit me-1"></i>Modifier
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-book-open fa-5x text-muted mb-4"></i>
+                    <h4 class="text-muted mb-3">Aucune matière trouvée</h4>
+                    <p class="text-muted mb-4">Commencez par créer votre première matière</p>
+                    <a href="{% url 'subject_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Créer une Matière
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+.teacher-avatar {
+    width: 40px;
+    height: 40px;
+    background: var(--gray-100);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+</style>
+{% endblock %}

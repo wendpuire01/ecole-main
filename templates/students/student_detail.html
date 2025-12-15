@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ student.name }} {{ student.first_name }} - Gestion d'École{% endblock %}
+
+{% block content %}
+<div class="student-detail-page">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1">{{ student.name }} {{ student.first_name }}{% if student.surname %} {{ student.surname }}{% endif %}</h1>
+            <p class="text-muted mb-0">Profil de l'étudiant</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'student_edit' student.id %}" class="btn btn-outline-primary">
+                <i class="fas fa-edit me-2"></i>Modifier
+            </a>
+            <a href="{% url 'students_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Retour
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Student Information Card -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Informations Personnelles</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="user-avatar-large mx-auto mb-3" style="width: 120px; height: 120px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-user-graduate fa-3x text-white"></i>
+                        </div>
+                        <h4 class="mb-0">{{ student.name }} {{ student.first_name }}</h4>
+                        {% if student.surname %}<p class="text-muted">{{ student.surname }}</p>{% endif %}
+                    </div>
+
+                    <div class="info-list">
+                        <div class="info-item mb-3">
+                            <label class="text-muted small mb-1">Date de Naissance</label>
+                            <div class="fw-semibold">
+                                <i class="fas fa-calendar me-2 text-primary"></i>
+                                {{ student.birth_date|date:"d/m/Y" }}
+                            </div>
+                        </div>
+
+                        <div class="info-item mb-3">
+                            <label class="text-muted small mb-1">Email</label>
+                            <div class="fw-semibold">
+                                <i class="fas fa-envelope me-2 text-primary"></i>
+                                {{ student.email|default:"-" }}
+                            </div>
+                        </div>
+
+                        <div class="info-item mb-3">
+                            <label class="text-muted small mb-1">Téléphone</label>
+                            <div class="fw-semibold">
+                                <i class="fas fa-phone me-2 text-primary"></i>
+                                {{ student.phone }}
+                            </div>
+                        </div>
+
+                        <div class="info-item mb-3">
+                            <label class="text-muted small mb-1">Adresse</label>
+                            <div class="fw-semibold">
+                                <i class="fas fa-map-marker-alt me-2 text-primary"></i>
+                                {{ student.address }}
+                            </div>
+                        </div>
+
+                        <div class="info-item">
+                            <label class="text-muted small mb-1">Classe</label>
+                            <div class="fw-semibold">
+                                <i class="fas fa-school me-2 text-primary"></i>
+                                {% if student.classe %}
+                                    {{ student.classe.name }}
+                                {% else %}
+                                    <span class="text-muted">Non assigné</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grades Card -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Notes et Résultats</h5>
+                    <a href="{% url 'report_card' student.id %}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-file-pdf me-2"></i>Bulletin
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if marks %}
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Matière</th>
+                                        <th>Note</th>
+                                        <th>Date</th>
+                                        <th>Appréciation</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for mark in marks %}
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold">{{ mark.assignment.subject.name }}</div>
+                                            <small class="text-muted">{{ mark.assignment.title }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge {% if mark.score >= 16 %}bg-success{% elif mark.score >= 14 %}bg-info{% elif mark.score >= 10 %}bg-warning{% else %}bg-danger{% endif %} fs-6">
+                                                {{ mark.score }}/20
+                                            </span>
+                                        </td>
+                                        <td>{{ mark.assignment.date|date:"d/m/Y" }}</td>
+                                        <td>
+                                            {% if mark.score >= 16 %}
+                                                <span class="text-success">Excellent</span>
+                                            {% elif mark.score >= 14 %}
+                                                <span class="text-info">Très bien</span>
+                                            {% elif mark.score >= 12 %}
+                                                <span class="text-primary">Bien</span>
+                                            {% elif mark.score >= 10 %}
+                                                <span class="text-warning">Assez bien</span>
+                                            {% else %}
+                                                <span class="text-danger">Insuffisant</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Calculate Average -->
+                        {% with total_score=0 count=marks.count %}
+                            {% for mark in marks %}
+                                {% widthratio mark.score 1 1 as score_value %}
+                            {% endfor %}
+                        {% endwith %}
+
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
+                            <p class="text-muted mb-0">Aucune note enregistrée</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Actions Card -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Actions Rapides</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="{% url 'grades_list' %}?class={{ student.classe.id }}" class="btn btn-outline-primary">
+                            <i class="fas fa-chart-line me-2"></i>Voir les Notes
+                        </a>
+                        <a href="#" class="btn btn-outline-success">
+                            <i class="fas fa-dollar-sign me-2"></i>Paiements
+                        </a>
+                        <a href="{% url 'report_card' student.id %}" class="btn btn-outline-info">
+                            <i class="fas fa-file-alt me-2"></i>Bulletin de Notes
+                        </a>
+                        <a href="#" class="btn btn-outline-warning">
+                            <i class="fas fa-calendar-check me-2"></i>Présences
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,432 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Gestion des Notes - Gestion d'École{% endblock %}
+
+{% block content %}
+<div class="grades-page">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1">Gestion des Notes</h1>
+            <p class="text-muted mb-0">Saisie et consultation des notes</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importModal">
+                <i class="fas fa-file-import me-2"></i>Importer
+            </button>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addGradeModal">
+                <i class="fas fa-plus me-2"></i>Ajouter Note
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Classe</label>
+                    <select class="form-select" name="class" onchange="this.form.submit()">
+                        <option value="">Sélectionner une classe</option>
+                        {% for class in classes %}
+                        <option value="{{ class.id }}" {% if selected_class == class.id %}selected{% endif %}>
+                            {{ class.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Matière</label>
+                    <select class="form-select" name="subject" onchange="this.form.submit()">
+                        <option value="">Toutes les matières</option>
+                        {% for subject in subjects %}
+                        <option value="{{ subject.id }}" {% if selected_subject == subject.id %}selected{% endif %}>
+                            {{ subject.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Période</label>
+                    <select class="form-select" name="period" onchange="this.form.submit()">
+                        <option value="">Sélectionner une période</option>
+                        <option value="trimestre1">Trimestre 1</option>
+                        <option value="trimestre2">Trimestre 2</option>
+                        <option value="trimestre3">Trimestre 3</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-success flex-fill" onclick="calculateAverages()">
+                            <i class="fas fa-calculator me-2"></i>Calculer Moyennes
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-3">
+            <div class="stat-card success">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="stat-label">Moyenne Classe</p>
+                        <h3 class="stat-value">{{ class_average|default:"13.5" }}</h3>
+                    </div>
+                    <div class="stat-icon success">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3">
+            <div class="stat-card primary">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="stat-label">Meilleure Note</p>
+                        <h3 class="stat-value">{{ highest_grade|default:"19.5" }}</h3>
+                    </div>
+                    <div class="stat-icon primary">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3">
+            <div class="stat-card warning">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="stat-label">Taux de Réussite</p>
+                        <h3 class="stat-value">{{ success_rate|default:"78%" }}</h3>
+                    </div>
+                    <div class="stat-icon warning">
+                        <i class="fas fa-percent"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3">
+            <div class="stat-card info">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="stat-label">Notes Saisies</p>
+                        <h3 class="stat-value">{{ total_grades|default:"245" }}</h3>
+                    </div>
+                    <div class="stat-icon info">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grades Table -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Liste des Notes</h5>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-primary" onclick="exportTableToExcel('gradesTable', 'notes')">
+                    <i class="fas fa-file-excel me-2"></i>Exporter
+                </button>
+                <button class="btn btn-sm btn-success" onclick="generateBulletins()">
+                    <i class="fas fa-file-pdf me-2"></i>Générer Bulletins
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table mb-0" id="gradesTable">
+                    <thead>
+                        <tr>
+                            <th width="5%">#</th>
+                            <th>Étudiant</th>
+                            <th>Matricule</th>
+                            <th>Classe</th>
+                            {% for subject in subjects_list %}
+                            <th class="text-center">{{ subject.short_name }}</th>
+                            {% endfor %}
+                            <th class="text-center bg-primary text-white">Moyenne</th>
+                            <th class="text-center">Rang</th>
+                            <th width="10%">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="user-avatar me-2">
+                                        <i class="fas fa-user-circle text-primary"></i>
+                                    </div>
+                                    <div class="fw-semibold">{{ student.name }}</div>
+                                </div>
+                            </td>
+                            <td>{{ student.matricule }}</td>
+                            <td>{{ student.class }}</td>
+                            {% for grade in student.grades %}
+                            <td class="text-center">
+                                <input type="number"
+                                       class="form-control form-control-sm text-center grade-input"
+                                       style="width: 70px; display: inline-block;"
+                                       value="{{ grade.score|default:'' }}"
+                                       min="0" max="20" step="0.25"
+                                       data-student="{{ student.id }}"
+                                       data-subject="{{ grade.subject_id }}"
+                                       onchange="saveGrade(this)">
+                            </td>
+                            {% endfor %}
+                            <td class="text-center">
+                                <strong class="badge
+                                    {% if student.average >= 14 %}bg-success
+                                    {% elif student.average >= 10 %}bg-warning
+                                    {% else %}bg-danger{% endif %}"
+                                    style="font-size: 1rem; padding: 0.5rem;">
+                                    {{ student.average|default:"-" }}
+                                </strong>
+                            </td>
+                            <td class="text-center fw-semibold">{{ student.rank|default:"-" }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'report_card' student.id %}"
+                                       class="btn btn-outline-primary"
+                                       title="Bulletin">
+                                        <i class="fas fa-file-alt"></i>
+                                    </a>
+                                    <button class="btn btn-outline-info"
+                                            title="Détails"
+                                            onclick="viewDetails({{ student.id }})">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="20" class="text-center py-5">
+                                <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
+                                <p class="text-muted mb-0">Aucune donnée disponible. Sélectionnez une classe.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Grade Modal -->
+<div class="modal fade" id="addGradeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Ajouter une Note</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{% url 'grades_list' %}" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Étudiant <span class="text-danger">*</span></label>
+                        <select class="form-select" name="student" required>
+                            <option value="">Sélectionner un étudiant</option>
+                            {% for student in all_students %}
+                            <option value="{{ student.id }}">{{ student.name }} {{ student.first_name }}{% if student.surname %} {{ student.surname }}{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">
+                            Veuillez sélectionner un étudiant
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Matière <span class="text-danger">*</span></label>
+                        <select class="form-select" name="subject" required>
+                            <option value="">Sélectionner une matière</option>
+                            {% for subject in all_subjects %}
+                            <option value="{{ subject.id }}">{{ subject.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">
+                            Veuillez sélectionner une matière
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Type d'Évaluation</label>
+                        <select class="form-select" name="evaluation_type" required>
+                            <option value="devoir">Devoir</option>
+                            <option value="composition">Composition</option>
+                            <option value="interrogation">Interrogation</option>
+                            <option value="examen">Examen</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Note sur 20 <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" name="score"
+                               min="0" max="20" step="0.25" placeholder="Ex: 15.5" required>
+                        <div class="invalid-feedback">
+                            Veuillez saisir une note entre 0 et 20
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Coefficient</label>
+                        <input type="number" class="form-control" name="coefficient"
+                               min="1" max="10" value="1" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" name="date"
+                               value="{{ today|date:'Y-m-d' }}" required>
+                        <div class="invalid-feedback">
+                            Veuillez sélectionner une date
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Observations</label>
+                        <textarea class="form-control" name="observations" rows="2"></textarea>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Importer des Notes</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Fichier Excel (.xlsx)</label>
+                        <input type="file" class="form-control" name="file" accept=".xlsx,.xls" required>
+                        <small class="text-muted">Format: Matricule, Matière, Note</small>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <a href="/static/templates/import_notes_template.xlsx" class="alert-link">
+                            Télécharger le modèle Excel
+                        </a>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-upload me-2"></i>Importer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Save grade inline
+function saveGrade(input) {
+    const studentId = input.dataset.student;
+    const subjectId = input.dataset.subject;
+    const score = input.value;
+
+    // Add visual feedback
+    input.style.borderColor = '#F59E0B';
+
+    // AJAX call to save grade
+    fetch('/grades/save/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            student: studentId,
+            subject: subjectId,
+            score: score
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            input.style.borderColor = '#10B981';
+            setTimeout(() => {
+                input.style.borderColor = '';
+            }, 1000);
+        } else {
+            input.style.borderColor = '#EF4444';
+            alert('Erreur lors de l\'enregistrement');
+        }
+    });
+}
+
+// Calculate averages
+function calculateAverages() {
+    if (!confirm('Calculer les moyennes pour tous les étudiants ?')) return;
+
+    fetch('/grades/calculate-averages/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Moyennes calculées avec succès!');
+            location.reload();
+        }
+    });
+}
+
+// Generate bulletins
+function generateBulletins() {
+    if (!confirm('Générer les bulletins pour toute la classe ?')) return;
+    window.location.href = '/grades/generate-bulletins/';
+}
+
+// Get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// View student details
+function viewDetails(studentId) {
+    window.location.href = `/students/${studentId}/details/`;
+}
+</script>
+{% endblock %}
