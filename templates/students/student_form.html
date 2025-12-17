@@ -8,8 +8,8 @@
     <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="h2 mb-1">Nouvel Étudiant</h1>
-            <p class="text-muted mb-0">Créer un nouvel étudiant</p>
+            <h1 class="h2 mb-1">{% if student %}Modifier l'Étudiant{% else %}Nouvel Étudiant{% endif %}</h1>
+            <p class="text-muted mb-0">{% if student %}Modifier {{ student.name }} {{ student.first_name }}{% else %}Créer un nouvel étudiant{% endif %}</p>
         </div>
         <div>
             <a href="{% url 'students_list' %}" class="btn btn-outline-secondary">
@@ -33,41 +33,48 @@
                             <div class="col-md-4">
                                 <label class="form-label">Nom</label>
                                 <input type="text" class="form-control" name="name"
+                                       value="{% if student %}{{ student.name }}{% endif %}"
                                        placeholder="KABORE" required>
                             </div>
 
                             <div class="col-md-4">
                                 <label class="form-label">Prénom</label>
                                 <input type="text" class="form-control" name="first_name"
+                                       value="{% if student %}{{ student.first_name }}{% endif %}"
                                        placeholder="Jean" required>
                             </div>
 
                             <div class="col-md-4">
                                 <label class="form-label">Deuxième Prénom (optionnel)</label>
                                 <input type="text" class="form-control" name="surname"
+                                       value="{% if student %}{{ student.surname }}{% endif %}"
                                        placeholder="Baptiste">
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label">Date de Naissance</label>
-                                <input type="date" class="form-control" name="birth_date" required>
+                                <input type="date" class="form-control" name="birth_date"
+                                       value="{% if student and student.birth_date %}{{ student.birth_date|date:'Y-m-d' }}{% endif %}">
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label">Email</label>
                                 <input type="email" class="form-control" name="email"
+                                       value="{% if student %}{{ student.email }}{% endif %}"
                                        placeholder="jean.kabore@student.bf">
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label">Téléphone Parents/Tuteur</label>
                                 <input type="tel" class="form-control" name="phone"
+                                       value="{% if student %}{{ student.phone }}{% endif %}"
                                        placeholder="+226 XX XX XX XX" >
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label">Adresse</label>
                                 <input type="text" class="form-control" name="address"
+                                       value="{% if student %}{{ student.address }}{% endif %}"
                                        placeholder="Ouagadougou, Secteur 15" >
                             </div>
                         </div>
@@ -75,7 +82,7 @@
                         <div class="mt-4 d-flex gap-2 justify-content-end">
                             <a href="{% url 'students_list' %}" class="btn btn-secondary">Annuler</a>
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-2"></i>Enregistrer
+                                <i class="fas fa-save me-2"></i>{% if student %}Enregistrer les modifications{% else %}Enregistrer{% endif %}
                             </button>
                         </div>
                     </form>
