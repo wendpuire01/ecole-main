@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Supprimer {{ teacher.name }} - Gestion d'École{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Confirmer la suppression
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Attention !</strong> Cette action est irréversible.
+                    </div>
+
+                    <h5 class="mb-3">Êtes-vous sûr de vouloir supprimer cet enseignant ?</h5>
+
+                    <div class="bg-light p-3 rounded mb-3">
+                        <p class="mb-2"><strong>Nom :</strong> {{ teacher.name }} {{ teacher.first_name }} {{ teacher.surname }}</p>
+                        <p class="mb-2"><strong>Email :</strong> {{ teacher.email }}</p>
+                        <p class="mb-0"><strong>Téléphone :</strong> {{ teacher.phone }}</p>
+                    </div>
+
+                    {% if classes_count > 0 or subjects_count > 0 or subject_classes_count > 0 %}
+                    <div class="alert alert-danger">
+                        <h6 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Dépendances détectées</h6>
+                        <p class="mb-2">Cet enseignant est associé à :</p>
+                        <ul class="mb-0">
+                            {% if classes_count > 0 %}
+                            <li><strong>{{ classes_count }}</strong> classe(s) comme enseignant principal</li>
+                            {% endif %}
+                            {% if subjects_count > 0 %}
+                            <li><strong>{{ subjects_count }}</strong> matière(s) comme enseignant par défaut</li>
+                            {% endif %}
+                            {% if subject_classes_count > 0 %}
+                            <li><strong>{{ subject_classes_count }}</strong> matière(s)-classe(s)</li>
+                            {% endif %}
+                        </ul>
+                        <hr>
+                        <p class="mb-0"><strong>Ces associations seront supprimées ou mises à NULL.</strong></p>
+                    </div>
+                    {% endif %}
+
+                    <form method="POST" class="d-flex gap-2 justify-content-end">
+                        {% csrf_token %}
+                        <a href="{% url 'teachers_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Annuler
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-2"></i>Confirmer la suppression
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -79,9 +79,13 @@
                                        class="btn btn-outline-primary" title="Voir">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <a href="#"
+                                    <a href="{% url 'teacher_edit' teacher.id %}"
                                        class="btn btn-outline-secondary" title="Modifier">
                                         <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'teacher_delete' teacher.id %}"
+                                       class="btn btn-outline-danger" title="Supprimer">
+                                        <i class="fas fa-trash"></i>
                                     </a>
                                 </div>
                             </td>

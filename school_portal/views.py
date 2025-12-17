@@ -61,14 +61,18 @@ def student_create(request):
     """Créer un nouvel étudiant"""
     if request.method == 'POST':
         try:
+            # Gérer la date de naissance (optionnelle)
+            birth_date = request.POST.get('birth_date', '').strip()
+            birth_date = birth_date if birth_date else None
+
             student = Student.objects.create(
                 name=request.POST.get('name'),
                 first_name=request.POST.get('first_name'),
                 surname=request.POST.get('surname', ''),
-                birth_date=request.POST.get('birth_date'),
+                birth_date=birth_date,
                 email=request.POST.get('email', ''),
-                phone=request.POST.get('phone'),
-                address=request.POST.get('address'),
+                phone=request.POST.get('phone', ''),
+                address=request.POST.get('address', ''),
             )
             messages.success(request, f'Étudiant {student.name} créé avec succès')
             return redirect('students_list')
@@ -90,10 +94,15 @@ def student_edit(request, pk):
             student.name = request.POST.get('name')
             student.first_name = request.POST.get('first_name')
             student.surname = request.POST.get('surname', '')
-            student.birth_date = request.POST.get('birth_date')
+
+            # Gérer la date de naissance (peut être vide)
+            birth_date = request.POST.get('birth_date', '').strip()
+            if birth_date:
+                student.birth_date = birth_date
+
             student.email = request.POST.get('email', '')
-            student.phone = request.POST.get('phone')
-            student.address = request.POST.get('address')
+            student.phone = request.POST.get('phone', '')
+            student.address = request.POST.get('address', '')
             student.save()
             messages.success(request, 'Étudiant modifié avec succès')
             return redirect('student_detail', pk=pk)
@@ -343,19 +352,92 @@ def class_edit(request, pk):
 
     if request.method == 'POST':
         try:
+            # Mettre à jour les informations de base
             class_obj.name = request.POST.get('name')
             class_obj.level = request.POST.get('level')
-            if request.POST.get('teacher'):
-                class_obj.teacher_id = request.POST.get('teacher')
+            teacher_id = request.POST.get('teacher')
+            class_obj.teacher_id = teacher_id if teacher_id else None
             class_obj.save()
-            messages.success(request, 'Classe modifiée avec succès')
+
+            # Importer le modèle SubjectClass
+            from .models import SubjectClass
+
+            # Supprimer les anciennes associations SubjectClass
+            SubjectClass.objects.filter(classe=class_obj).delete()
+
+            # Vider les matières associées
+            class_obj.subject_set.clear()
+
+            # Récupérer les nouvelles matières, enseignants et coefficients
+            subject_ids = request.POST.getlist('subjects[]')
+            teacher_ids = request.POST.getlist('teachers[]')
+            coefficients = request.POST.getlist('coefficients[]')
+
+            # Créer les nouvelles associations
+            for i, subject_id in enumerate(subject_ids):
+                if subject_id:
+                    subject = Subject.objects.get(pk=subject_id)
+                    teacher_id_for_subject = teacher_ids[i] if i < len(teacher_ids) else None
+                    coefficient = int(coefficients[i]) if i < len(coefficients) and coefficients[i] else 1
+
+                    # Ajouter la classe à la matière
+                    subject.classes.add(class_obj)
+
+                    # Créer l'entrée SubjectClass
+                    SubjectClass.objects.create(
+                        subject=subject,
+                        classe=class_obj,
+                        teacher_id=teacher_id_for_subject if teacher_id_for_subject else None,
+                        coefficient=coefficient
+                    )
+
+            messages.success(request, f'Classe {class_obj.name} modifiée avec succès')
             return redirect('class_detail', pk=pk)
         except Exception as e:
             messages.error(request, f'Erreur: {str(e)}')
 
+    # Charger les données pour l'affichage
     teachers = Teacher.objects.all()
-    context = {'class': class_obj, 'teachers': teachers}
+    subjects = Subject.objects.all()
+
+    # Récupérer les matières actuelles de la classe avec leurs enseignants et coefficients
+    from .models import SubjectClass
+    subject_classes = SubjectClass.objects.filter(classe=class_obj).select_related('subject', 'teacher')
+
+    context = {
+        'class': class_obj,
+        'teachers': teachers,
+        'subjects': subjects,
+        'subject_classes': subject_classes,
+        'is_edit': True,
+    }
     return render(request, 'classes/class_form.html', context)
+
+
+@login_required
+def class_delete(request, pk):
+    """Supprimer une classe"""
+    class_obj = get_object_or_404(Class, pk=pk)
+
+    if request.method == 'POST':
+        class_name = class_obj.name
+        class_obj.delete()
+        messages.success(request, f'Classe {class_name} supprimée avec succès')
+        return redirect('classes_list')
+
+    # Compter les dépendances
+    from .models import SubjectClass
+    students_count = class_obj.students.count()
+    subjects_count = class_obj.subject_set.count()
+    subject_classes_count = SubjectClass.objects.filter(classe=class_obj).count()
+
+    context = {
+        'class': class_obj,
+        'students_count': students_count,
+        'subjects_count': subjects_count,
+        'subject_classes_count': subject_classes_count,
+    }
+    return render(request, 'classes/class_confirm_delete.html', context)
 
 
 @login_required
@@ -401,11 +483,15 @@ def teacher_create(request):
     """Créer un nouvel enseignant"""
     if request.method == 'POST':
         try:
+            # Gérer la date de naissance (optionnelle)
+            birth_date = request.POST.get('birth_date', '').strip()
+            birth_date = birth_date if birth_date else None
+
             teacher = Teacher.objects.create(
                 name=request.POST.get('name'),
                 first_name=request.POST.get('first_name'),
                 surname=request.POST.get('surname', ''),
-                birth_date=request.POST.get('birth_date'),
+                birth_date=birth_date,
                 email=request.POST.get('email', ''),
                 phone=request.POST.get('phone'),
                 address=request.POST.get('address'),
@@ -431,6 +517,61 @@ def teacher_detail(request, pk):
         'subjects': subjects,
     }
     return render(request, 'teachers/teacher_detail.html', context)
+
+
+@login_required
+def teacher_edit(request, pk):
+    """Modifier un enseignant"""
+    teacher = get_object_or_404(Teacher, pk=pk)
+
+    if request.method == 'POST':
+        try:
+            teacher.name = request.POST.get('name')
+            teacher.first_name = request.POST.get('first_name')
+            teacher.surname = request.POST.get('surname', '')
+
+            # Gérer la date de naissance (peut être vide)
+            birth_date = request.POST.get('birth_date', '').strip()
+            if birth_date:
+                teacher.birth_date = birth_date
+
+            teacher.email = request.POST.get('email', '')
+            teacher.phone = request.POST.get('phone')
+            teacher.address = request.POST.get('address')
+            teacher.save()
+            messages.success(request, 'Enseignant modifié avec succès')
+            return redirect('teacher_detail', pk=pk)
+        except Exception as e:
+            messages.error(request, f'Erreur: {str(e)}')
+
+    context = {'teacher': teacher}
+    return render(request, 'teachers/teacher_form.html', context)
+
+
+@login_required
+def teacher_delete(request, pk):
+    """Supprimer un enseignant"""
+    teacher = get_object_or_404(Teacher, pk=pk)
+
+    if request.method == 'POST':
+        teacher_name = f"{teacher.name} {teacher.first_name}"
+        teacher.delete()
+        messages.success(request, f'Enseignant {teacher_name} supprimé avec succès')
+        return redirect('teachers_list')
+
+    # Compter les dépendances
+    classes_count = Class.objects.filter(teacher=teacher).count()
+    subjects_count = Subject.objects.filter(teacher=teacher).count()
+    from .models import SubjectClass
+    subject_classes_count = SubjectClass.objects.filter(teacher=teacher).count()
+
+    context = {
+        'teacher': teacher,
+        'classes_count': classes_count,
+        'subjects_count': subjects_count,
+        'subject_classes_count': subject_classes_count,
+    }
+    return render(request, 'teachers/teacher_confirm_delete.html', context)
 
 
 # ===================================
@@ -466,6 +607,53 @@ def subject_create(request):
     teachers = Teacher.objects.all()
     context = {'teachers': teachers}
     return render(request, 'subjects/subject_form.html', context)
+
+
+@login_required
+def subject_edit(request, pk):
+    """Modifier une matière"""
+    subject = get_object_or_404(Subject, pk=pk)
+
+    if request.method == 'POST':
+        try:
+            subject.name = request.POST.get('name')
+            teacher_id = request.POST.get('teacher')
+            subject.teacher_id = teacher_id if teacher_id else None
+            subject.save()
+            messages.success(request, f'Matière {subject.name} modifiée avec succès')
+            return redirect('subjects_list')
+        except Exception as e:
+            messages.error(request, f'Erreur: {str(e)}')
+
+    teachers = Teacher.objects.all()
+    context = {'subject': subject, 'teachers': teachers}
+    return render(request, 'subjects/subject_form.html', context)
+
+
+@login_required
+def subject_delete(request, pk):
+    """Supprimer une matière"""
+    subject = get_object_or_404(Subject, pk=pk)
+
+    if request.method == 'POST':
+        subject_name = subject.name
+        subject.delete()
+        messages.success(request, f'Matière {subject_name} supprimée avec succès')
+        return redirect('subjects_list')
+
+    # Compter les dépendances
+    from .models import SubjectClass
+    classes_count = subject.classes.count()
+    assignments_count = Assignment.objects.filter(subject=subject).count()
+    subject_classes_count = SubjectClass.objects.filter(subject=subject).count()
+
+    context = {
+        'subject': subject,
+        'classes_count': classes_count,
+        'assignments_count': assignments_count,
+        'subject_classes_count': subject_classes_count,
+    }
+    return render(request, 'subjects/subject_confirm_delete.html', context)
 
 
 # ===================================
@@ -625,6 +813,23 @@ def save_grade(request):
 
 
 @login_required
+def delete_grade(request, mark_id):
+    """Supprimer une note"""
+    mark = get_object_or_404(Mark, pk=mark_id)
+
+    if request.method == 'POST':
+        student_name = f"{mark.student.name} {mark.student.first_name}"
+        subject_name = mark.assignment.subject.name
+        score = mark.score
+        mark.delete()
+        messages.success(request, f'Note de {student_name} en {subject_name} ({score}/20) supprimée avec succès')
+        return redirect('grades_list')
+
+    context = {'mark': mark}
+    return render(request, 'grades/mark_confirm_delete.html', context)
+
+
+@login_required
 @require_POST
 def calculate_averages(request):
     """Calculer les moyennes (AJAX)"""
@@ -716,7 +921,7 @@ def report_card(request, student_id):
         if subject.name not in subjects_dict:
             # Récupérer le coefficient de la matière pour cette classe
             coefficient = 1  # Valeur par défaut
-            teacher_name = subject.teacher.name if subject.teacher else 'N/A'
+            teacher_name = subject.teacher.name + subject.teacher.first_name if subject.teacher else 'N/A'
 
             if student_class:
                 # Chercher le coefficient dans SubjectClass

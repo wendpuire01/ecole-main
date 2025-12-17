@@ -18,6 +18,9 @@
             <a href="{% url 'class_edit' class.id %}" class="btn btn-outline-primary">
                 <i class="fas fa-edit me-2"></i>Modifier
             </a>
+            <a href="{% url 'class_delete' class.id %}" class="btn btn-outline-danger">
+                <i class="fas fa-trash me-2"></i>Supprimer
+            </a>
             <a href="{% url 'classes_list' %}" class="btn btn-outline-secondary">
                 <i class="fas fa-arrow-left me-2"></i>Retour
             </a>

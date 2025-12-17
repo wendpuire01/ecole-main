@@ -197,9 +197,16 @@
                             <td><strong>{{ student.full_name }}</strong></td>
                             <td>
                                 {% for mark in student.marks %}
-                                <span class="badge bg-secondary me-1" title="{{ mark.assignment.name }} - {{ mark.date }}">
-                                    {{ mark.score }}/20 ({{ mark.assignment.evaluation_type }})
-                                </span>
+                                <div class="d-inline-flex align-items-center me-2 mb-1">
+                                    <span class="badge bg-secondary" title="{{ mark.assignment.name }} - {{ mark.date|date:'d/m/Y' }}">
+                                        {{ mark.score }}/20 ({{ mark.assignment.evaluation_type }})
+                                    </span>
+                                    <a href="{% url 'delete_grade' mark.id %}"
+                                       class="btn btn-sm btn-link text-danger p-0 ms-1"
+                                       title="Supprimer cette note">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </a>
+                                </div>
                                 {% endfor %}
                             </td>
                         </tr>

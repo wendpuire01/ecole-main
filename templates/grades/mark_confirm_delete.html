@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Supprimer une Note - Gestion d'École{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Confirmer la suppression
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Attention !</strong> Cette action est irréversible.
+                    </div>
+
+                    <h5 class="mb-3">Êtes-vous sûr de vouloir supprimer cette note ?</h5>
+
+                    <div class="bg-light p-4 rounded mb-3">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-2"><strong>Élève :</strong></p>
+                                <p class="text-primary fs-5">{{ mark.student.name }} {{ mark.student.first_name }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-2"><strong>Matricule :</strong></p>
+                                <p class="text-muted">{{ mark.student.matricule }}</p>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <p class="mb-2"><strong>Matière :</strong></p>
+                                <p class="text-info">{{ mark.assignment.subject.name }}</p>
+                            </div>
+                            <div class="col-md-4">
+                                <p class="mb-2"><strong>Évaluation :</strong></p>
+                                <p>{{ mark.assignment.name }}</p>
+                            </div>
+                            <div class="col-md-4">
+                                <p class="mb-2"><strong>Note :</strong></p>
+                                <p class="fs-4 text-danger fw-bold">{{ mark.score }}/20</p>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-2"><strong>Type :</strong></p>
+                                <span class="badge bg-secondary">{{ mark.assignment.evaluation_type }}</span>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-2"><strong>Date :</strong></p>
+                                <p>{{ mark.date|date:"d/m/Y" }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="POST" class="d-flex gap-2 justify-content-end">
+                        {% csrf_token %}
+                        <a href="{% url 'grades_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Annuler
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-2"></i>Confirmer la suppression
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

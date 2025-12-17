@@ -75,8 +75,11 @@
                 </div>
                 <div class="card-footer bg-transparent">
                     <div class="d-flex gap-2">
-                        <a href="#" class="btn btn-sm btn-outline-primary flex-fill">
+                        <a href="{% url 'subject_edit' subject.id %}" class="btn btn-sm btn-outline-secondary flex-fill">
                             <i class="fas fa-edit me-1"></i>Modifier
+                        </a>
+                        <a href="{% url 'subject_delete' subject.id %}" class="btn btn-sm btn-outline-danger">
+                            <i class="fas fa-trash"></i>
                         </a>
                     </div>
                 </div>

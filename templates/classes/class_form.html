@@ -8,8 +8,8 @@
     <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="h2 mb-1">Nouvelle Classe</h1>
-            <p class="text-muted mb-0">Créer une nouvelle classe avec ses matières et enseignants</p>
+            <h1 class="h2 mb-1">{% if is_edit %}Modifier la Classe{% else %}Nouvelle Classe{% endif %}</h1>
+            <p class="text-muted mb-0">{% if is_edit %}Modifier la classe {{ class.name }}{% else %}Créer une nouvelle classe avec ses matières et enseignants{% endif %}</p>
         </div>
         <div>
             <a href="{% url 'classes_list' %}" class="btn btn-outline-secondary">
@@ -34,6 +34,7 @@
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Nom de la Classe <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" name="name"
+                                       value="{% if class %}{{ class.name }}{% endif %}"
                                        placeholder="Ex: Terminale S1" required>
                             </div>
 
@@ -41,13 +42,13 @@
                                 <label class="form-label fw-bold">Niveau <span class="text-danger">*</span></label>
                                 <select class="form-select" name="level" required>
                                     <option value="">Sélectionner un niveau</option>
-                                    <option value="6eme">6ème</option>
-                                    <option value="5eme">5ème</option>
-                                    <option value="4eme">4ème</option>
-                                    <option value="3eme">3ème</option>
-                                    <option value="Seconde">Seconde</option>
-                                    <option value="Première">Première</option>
-                                    <option value="Terminale">Terminale</option>
+                                    <option value="6eme" {% if class.level == "6eme" %}selected{% endif %}>6ème</option>
+                                    <option value="5eme" {% if class.level == "5eme" %}selected{% endif %}>5ème</option>
+                                    <option value="4eme" {% if class.level == "4eme" %}selected{% endif %}>4ème</option>
+                                    <option value="3eme" {% if class.level == "3eme" %}selected{% endif %}>3ème</option>
+                                    <option value="Seconde" {% if class.level == "Seconde" %}selected{% endif %}>Seconde</option>
+                                    <option value="Première" {% if class.level == "Première" %}selected{% endif %}>Première</option>
+                                    <option value="Terminale" {% if class.level == "Terminale" %}selected{% endif %}>Terminale</option>
                                 </select>
                             </div>
 
@@ -56,7 +57,7 @@
                                 <select class="form-select" name="teacher">
                                     <option value="">Sélectionner un enseignant</option>
                                     {% for teacher in teachers %}
-                                    <option value="{{ teacher.id }}">
+                                    <option value="{{ teacher.id }}" {% if class.teacher.id == teacher.id %}selected{% endif %}>
                                         {{ teacher.name }} {{ teacher.first_name }}
                                     </option>
                                     {% endfor %}
@@ -95,7 +96,7 @@
                         <i class="fas fa-times me-2"></i>Annuler
                     </a>
                     <button type="submit" class="btn btn-primary btn-lg">
-                        <i class="fas fa-save me-2"></i>Créer la Classe
+                        <i class="fas fa-save me-2"></i>{% if is_edit %}Enregistrer les modifications{% else %}Créer la Classe{% endif %}
                     </button>
                 </div>
             </form>
@@ -112,7 +113,13 @@
                 <select class="form-select subject-select" name="subjects[]" required>
                     <option value="">-- Sélectionner une matière --</option>
                     {% for subject in subjects %}
-                    <option value="{{ subject.id }}">{{ subject.name }}</option>
+                    {% comment %} Vérifier si la matière a un ense
+                    ignant assigné {% endcomment %}
+                    {% if subject.teacher %}
+                    <option value="{{ subject.id }}">{{ subject.name }} ({{ subject.teacher.name }} {{ subject.teacher.first_name }})</option>
+                    {% else %}
+                    <option value="{{ subject.id }}">{{ subject.name }} (Aucun enseignant)</option>
+                    {% endif %}
                     {% endfor %}
                 </select>
             </div>
@@ -216,9 +223,44 @@ document.getElementById('classForm').addEventListener('submit', function(e) {
     }
 });
 
-// Ajouter automatiquement une matière au chargement
+// Charger les matières existantes lors de l'édition
 window.addEventListener('load', function() {
-    addSubject();
+    {% if is_edit and subject_classes %}
+        // Mode édition : charger les matières existantes
+        {% for sc in subject_classes %}
+        addSubjectWithData({{ sc.subject.id }}, {% if sc.teacher %}{{ sc.teacher.id }}{% else %}null{% endif %}, {{ sc.coefficient }});
+        {% endfor %}
+    {% else %}
+        // Mode création : ajouter une ligne vide
+        addSubject();
+    {% endif %}
 });
+
+// Ajouter une matière avec des données pré-remplies (pour l'édition)
+function addSubjectWithData(subjectId, teacherId, coefficient) {
+    const template = document.getElementById('subjectRowTemplate');
+    const container = document.getElementById('subjectsContainer');
+    const emptyMessage = document.getElementById('emptyMessage');
+
+    // Cloner le template
+    const clone = template.content.cloneNode(true);
+
+    // Sélectionner les éléments avant de les ajouter au DOM
+    const subjectSelect = clone.querySelector('.subject-select');
+    const teacherSelect = clone.querySelector('.teacher-select');
+    const coefficientInput = clone.querySelector('input[name="coefficients[]"]');
+
+    // Définir les valeurs
+    if (subjectId) subjectSelect.value = subjectId;
+    if (teacherId) teacherSelect.value = teacherId;
+    if (coefficient) coefficientInput.value = coefficient;
+
+    // Ajouter au container
+    container.appendChild(clone);
+    subjectCount++;
+
+    // Cacher le message vide
+    emptyMessage.style.display = 'none';
+}
 </script>
 {% endblock %}

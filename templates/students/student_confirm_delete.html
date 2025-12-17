@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Supprimer {{ student.name }} - Gestion d'École{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Confirmer la suppression
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Attention !</strong> Cette action est irréversible.
+                    </div>
+
+                    <h5 class="mb-3">Êtes-vous sûr de vouloir supprimer cet élève ?</h5>
+
+                    <div class="bg-light p-3 rounded mb-3">
+                        <p class="mb-2"><strong>Nom :</strong> {{ student.name }} {{ student.first_name }} {{ student.surname }}</p>
+                        <p class="mb-2"><strong>Matricule :</strong> {{ student.matricule }}</p>
+                        <p class="mb-2"><strong>Date de naissance :</strong> {{ student.birth_date|date:"d/m/Y" }}</p>
+                        <p class="mb-0"><strong>Email :</strong> {{ student.email|default:"Non renseigné" }}</p>
+                    </div>
+
+                    <div class="alert alert-danger">
+                        <h6 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Avertissement</h6>
+                        <p class="mb-0">
+                            <strong>Toutes les notes, inscriptions et données associées à cet élève seront également supprimées !</strong>
+                        </p>
+                    </div>
+
+                    <form method="POST" class="d-flex gap-2 justify-content-end">
+                        {% csrf_token %}
+                        <a href="{% url 'students_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Annuler
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-2"></i>Confirmer la suppression
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

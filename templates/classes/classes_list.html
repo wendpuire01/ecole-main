@@ -142,7 +142,7 @@
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
-                                    <a class="dropdown-item text-danger" href="#" data-action="delete">
+                                    <a class="dropdown-item text-danger" href="{% url 'class_delete' class.id %}">
                                         <i class="fas fa-trash me-2"></i>Supprimer
                                     </a>
                                 </li>
@@ -307,8 +307,8 @@
                             <label class="form-label">Matières</label>
                             <select class="form-select" name="subjects" multiple size="6">
                                 {% for subject in subjects %}
-                                <option value="{{ subject.id }}">{{ subject.name }}</option>
-                                {% endfor %}
+                                <option value="{{ subject.id }}">{{ subject.name }} -- {{ subject.teacher.name }} {{ subject.teacher.first_name }}</option>
+                                {% endfor %}   
                             </select>
                             <small class="text-muted">Maintenez Ctrl (ou Cmd sur Mac) pour sélectionner plusieurs matières</small>
                         </div>

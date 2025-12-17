@@ -69,10 +69,11 @@ class SubjectAdmin(admin.ModelAdmin):
 
 @admin.register(SubjectClass)
 class SubjectClassAdmin(admin.ModelAdmin):
-    list_display = ['subject', 'classe', 'coefficient', 'created_at']
-    list_filter = ['subject', 'classe']
-    search_fields = ['subject__name', 'classe__name']
-    ordering = ['subject', 'classe']
+    list_display = ['subject', 'classe', 'teacher', 'coefficient', 'created_at']
+    list_filter = ['subject', 'classe', 'teacher']
+    search_fields = ['subject__name', 'classe__name', 'teacher__name']
+    ordering = ['classe', 'subject']
+    autocomplete_fields = ['subject', 'classe', 'teacher']
 
 
 @admin.register(Period)

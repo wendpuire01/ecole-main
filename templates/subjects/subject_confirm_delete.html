@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Supprimer {{ subject.name }} - Gestion d'École{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Confirmer la suppression
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Attention !</strong> Cette action est irréversible.
+                    </div>
+
+                    <h5 class="mb-3">Êtes-vous sûr de vouloir supprimer cette matière ?</h5>
+
+                    <div class="bg-light p-3 rounded mb-3">
+                        <p class="mb-2"><strong>Matière :</strong> {{ subject.name }}</p>
+                        <p class="mb-0"><strong>Enseignant par défaut :</strong>
+                            {% if subject.teacher %}
+                                {{ subject.teacher.name }} {{ subject.teacher.first_name }}
+                            {% else %}
+                                Aucun
+                            {% endif %}
+                        </p>
+                    </div>
+
+                    {% if classes_count > 0 or assignments_count > 0 or subject_classes_count > 0 %}
+                    <div class="alert alert-danger">
+                        <h6 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Dépendances détectées</h6>
+                        <p class="mb-2">Cette matière est associée à :</p>
+                        <ul class="mb-0">
+                            {% if classes_count > 0 %}
+                            <li><strong>{{ classes_count }}</strong> classe(s)</li>
+                            {% endif %}
+                            {% if assignments_count > 0 %}
+                            <li><strong>{{ assignments_count }}</strong> devoir(s)/évaluation(s)</li>
+                            {% endif %}
+                            {% if subject_classes_count > 0 %}
+                            <li><strong>{{ subject_classes_count }}</strong> configuration(s) classe-matière avec enseignants et coefficients</li>
+                            {% endif %}
+                        </ul>
+                        <hr>
+                        <p class="mb-0"><strong>Toutes ces données seront également supprimées !</strong></p>
+                    </div>
+                    {% endif %}
+
+                    <form method="POST" class="d-flex gap-2 justify-content-end">
+                        {% csrf_token %}
+                        <a href="{% url 'subjects_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Annuler
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-2"></i>Confirmer la suppression
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
