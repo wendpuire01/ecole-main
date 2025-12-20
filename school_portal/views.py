@@ -966,16 +966,11 @@ def report_card(request, student_id):
         appreciation = "Résultats insuffisants. Travail et concentration nécessaires."
 
     # Calculer le rang dans la classe
-    rank = None
+    rank = student.get_rank_in_class()
     class_size = 0
     if student_class:
-        # Récupérer tous les élèves de la classe avec leurs moyennes
         class_students = student_class.students.all()
         class_size = class_students.count()
-
-        # Calculer les moyennes de tous les élèves (simplifié)
-        # Pour un calcul précis, il faudrait calculer la moyenne de chaque élève
-        # TODO: Améliorer le calcul du rang
 
     # Récupérer les paramètres de l'école
     from .models import SchoolSettings
@@ -1041,6 +1036,9 @@ def bulk_report_cards(request):
             'phone': '+226 XX XX XX XX'
         }
     )
+
+    # Calculer tous les rangs en une seule fois pour optimiser les performances
+    rankings = class_obj.get_students_rankings()
 
     for student in students:
         student_class = student.class_set.first()
@@ -1112,7 +1110,7 @@ def bulk_report_cards(request):
             'total_coefficient': total_coefficients,
             'average': average,
             'appreciation': appreciation,
-            'rank': None,  # Rang à calculer si besoin
+            'rank': rankings.get(student.id),
             'class_size': students.count(),
         })
 

@@ -366,7 +366,9 @@
         </div>
         <div class="info-item">
             <span class="info-label">Né(e) le:</span>
-            <span class="info-value">{{ student.birth_date|date:"d/m/Y"|default:"15/03/2007" }}</span>
+            {% if student.birth_date and student.birth_date|date:"d/m/Y" != "01/01/0001" %}
+             <span class="info-value">{{ student.birth_date|date:"d/m/Y" }}</span>
+            {% endif %}
         </div>
         <div class="info-item">
             <span class="info-label">Prof. Principal:</span>

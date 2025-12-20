@@ -50,7 +50,7 @@ class Student(models.Model):
         return self.class_set.first()
 
     def get_average(self, period=None, subject=None):
-        """Calcule la moyenne de l'étudiant"""
+        """Calcule la moyenne de l'étudiant avec coefficients des matières"""
         marks = Mark.objects.filter(student=self)
 
         if period:
@@ -61,25 +61,69 @@ class Student(models.Model):
         if not marks.exists():
             return None
 
-        total_points = 0
-        total_coefficients = 0
+        # Récupérer la classe de l'étudiant
+        classe = self.classe
+
+        # Si on calcule pour UNE matière spécifique
+        if subject:
+            total_points = 0
+            total_coefficients = 0
+
+            for mark in marks:
+                coefficient = mark.assignment.coefficient
+                total_points += mark.score * coefficient
+                total_coefficients += coefficient
+
+            if total_coefficients == 0:
+                return None
+
+            return round(total_points / total_coefficients, 2)
+
+        # Si on calcule la moyenne GÉNÉRALE (toutes matières)
+        # Calculer d'abord la moyenne par matière, puis pondérer par coefficient matière
+        subjects_averages = {}
 
         for mark in marks:
-            coefficient = mark.assignment.coefficient
-            total_points += mark.score * coefficient
-            total_coefficients += coefficient
+            subject_name = mark.assignment.subject.name
+            if subject_name not in subjects_averages:
+                subjects_averages[subject_name] = {
+                    'subject': mark.assignment.subject,
+                    'total_points': 0,
+                    'total_coefficients': 0,
+                }
 
-        if total_coefficients == 0:
+            coefficient = mark.assignment.coefficient
+            subjects_averages[subject_name]['total_points'] += mark.score * coefficient
+            subjects_averages[subject_name]['total_coefficients'] += coefficient
+
+        # Calculer la moyenne générale pondérée par coefficient matière
+        total_weighted_points = 0
+        total_subject_coefficients = 0
+
+        for subject_data in subjects_averages.values():
+            if subject_data['total_coefficients'] > 0:
+                # Moyenne de la matière
+                subject_avg = subject_data['total_points'] / subject_data['total_coefficients']
+
+                # Coefficient de la matière pour cette classe
+                subject_coef = 1  # Par défaut
+                if classe:
+                    subject_coef = subject_data['subject'].get_coefficient_for_class(classe)
+
+                total_weighted_points += subject_avg * subject_coef
+                total_subject_coefficients += subject_coef
+
+        if total_subject_coefficients == 0:
             return None
 
-        return round(total_points / total_coefficients, 2)
+        return round(total_weighted_points / total_subject_coefficients, 2)
 
     def get_subject_average(self, subject, period=None):
         """Calcule la moyenne pour une matière"""
         return self.get_average(period=period, subject=subject)
 
     def get_rank_in_class(self, period=None):
-        """Retourne le rang de l'étudiant dans sa classe"""
+        """Retourne le rang de l'étudiant dans sa classe avec gestion des ex-aequo"""
         classe = self.classe
         if not classe:
             return None
@@ -90,13 +134,22 @@ class Student(models.Model):
             if avg is not None:
                 students_averages.append({'student': student, 'average': avg})
 
+        if not students_averages:
+            return None
+
         # Trier par moyenne décroissante
         students_averages.sort(key=lambda x: x['average'], reverse=True)
 
-        # Trouver le rang
-        for rank, item in enumerate(students_averages, 1):
+        # Calculer le rang avec gestion des ex-aequo
+        current_rank = 1
+        for i, item in enumerate(students_averages):
+            # Si ce n'est pas le premier et que la moyenne est différente de la précédente
+            if i > 0 and item['average'] < students_averages[i-1]['average']:
+                current_rank = i + 1
+
+            # Trouver le rang de cet étudiant
             if item['student'].id == self.id:
-                return rank
+                return current_rank
 
         return None
 
@@ -136,6 +189,34 @@ class Class(models.Model):
 
     def students_count(self):
         return self.students.count()
+
+    def get_students_rankings(self, period=None):
+        """Calcule les rangs de tous les élèves de la classe en une seule fois
+        Retourne un dictionnaire {student_id: rank}
+        """
+        students_averages = []
+        for student in self.students.all():
+            avg = student.get_average(period=period)
+            if avg is not None:
+                students_averages.append({'student_id': student.id, 'average': avg})
+
+        if not students_averages:
+            return {}
+
+        # Trier par moyenne décroissante
+        students_averages.sort(key=lambda x: x['average'], reverse=True)
+
+        # Calculer les rangs avec gestion des ex-aequo
+        rankings = {}
+        current_rank = 1
+        for i, item in enumerate(students_averages):
+            # Si ce n'est pas le premier et que la moyenne est différente de la précédente
+            if i > 0 and item['average'] < students_averages[i-1]['average']:
+                current_rank = i + 1
+
+            rankings[item['student_id']] = current_rank
+
+        return rankings
 
 
 # Subjects Model
