@@ -25,9 +25,18 @@
         background: white !important;
     }
 
+    /* Supprimer les headers et footers automatiques du navigateur */
+    html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
     @page {
         size: A4;
         margin: 10mm;
+        /* Supprimer les headers et footers du navigateur */
+        margin-top: 10mm;
+        margin-bottom: 10mm;
     }
 }
 
@@ -53,14 +62,14 @@
 }
 
 .school-logo {
-    width: 50px;
-    height: 50px;
+    width: 100px;
+    height: 100px;
     background: var(--gray-200);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
+    font-size: 2rem;
     color: var(--primary);
 }
 
@@ -89,7 +98,7 @@
 }
 
 .report-title p {
-    font-size: 9pt;
+    font-size: 14pt;
     margin: 2px 0 0 0;
     color: var(--gray-600);
 }
@@ -102,7 +111,8 @@
     padding: 8px;
     border-radius: 4px;
     margin-bottom: 8px;
-    font-size: 9pt;
+    font-size: 14pt;
+
 }
 
 .info-item {
@@ -124,19 +134,20 @@
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 8px;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 
 .grades-table thead {
-    background: var(--primary);
-    color: white;
+    background: var(--gray-300);
+    color: black;
 }
 
 .grades-table th {
-    padding: 6px 4px;
+    padding: 8px 6px;
     text-align: left;
-    font-weight: 600;
-    font-size: 8pt;
+    font-weight: 700;
+    font-size: 10pt;
+    border: 2px solid;
 }
 
 .grades-table th.text-center,
@@ -149,32 +160,30 @@
 }
 
 .grades-table td {
-    padding: 4px;
+    padding: 6px;
+    font-size: 10pt;
+    border: 1px solid;
 }
 
 .subject-name {
     font-weight: 500;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 
 .teacher-name {
-    font-size: 8pt;
-    color: var(--gray-600);
+    font-size: 9pt;
+    color: black;
 }
 
 .grade-value {
     font-weight: 600;
     font-size: 10pt;
+    color: black;
 }
 
-.grade-excellent { color: var(--success); }
-.grade-good { color: var(--info); }
-.grade-average { color: var(--warning); }
-.grade-poor { color: var(--danger); }
-
 .summary-section {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-    color: white;
+    background: var(--gray-200);
+    color: black;
     padding: 10px;
     border-radius: 4px;
     margin-bottom: 8px;
@@ -193,7 +202,7 @@
 
 .summary-label {
     font-size: 8pt;
-    opacity: 0.9;
+    color: black;
     margin-bottom: 2px;
 }
 
@@ -218,7 +227,7 @@
 
 .appreciation-text {
     font-size: 9pt;
-    color: var(--gray-700);
+    color: black;
     line-height: 1.4;
 }
 
@@ -245,6 +254,7 @@
 .attendance-value {
     font-size: 12pt;
     font-weight: 600;
+    color: black;
 }
 
 .signatures-section {
@@ -346,7 +356,7 @@
 
         <div class="report-title">
             <h1>BULLETIN DE NOTES</h1>
-            <p>Année Scolaire {{ academic_year|default:"2024-2025" }} - {{ period|default:"1er Trimestre" }}</p>
+            <p>Année Scolaire {{ academic_year|default:"2025-2026" }} - {{ period|default:"1er Trimestre" }}</p>
         </div>
     </div>
 
@@ -400,11 +410,7 @@
                 <td><div class="teacher-name">{{ grade.teacher }}</div></td>
                 <td class="text-center fw-semibold">{{ grade.coefficient }}</td>
                 <td class="text-center">
-                    <span class="grade-value
-                        {% if grade.score >= 16 %}grade-excellent
-                        {% elif grade.score >= 14 %}grade-good
-                        {% elif grade.score >= 10 %}grade-average
-                        {% else %}grade-poor{% endif %}">
+                    <span class="grade-value">
                         {{ grade.score }}
                     </span>
                 </td>
@@ -473,35 +479,31 @@
     <div class="signatures-section">
         <!-- L'Enseignant Maître -->
         <div class="signature-box">
-            <div class="signature-title">L'Enseignant Maître</div>
+            <div class="signature-title">Directeur</div>
             <div class="signature-space">
-                <div class="signature-name-line">Nom: ___________________________</div>
                 <div class="signature-line"></div>
                 <div class="signature-label">Signature</div>
             </div>
         </div>
 
-        <!-- Le Parent/Tuteur -->
-        <div class="signature-box">
-            <div class="signature-title">Le Parent / Tuteur</div>
-            <div class="signature-space">
-                <div class="signature-name-line">Nom: ___________________________</div>
-                <div class="signature-line"></div>
-                <div class="signature-label">Signature</div>
-            </div>
-        </div>
+        
     </div>
 
-    <!-- Footer -->
-    <div class="footer-note">
-        <strong>Échelle:</strong> Excellent (16-20) | Très Bien (14-16) | Bien (12-14) | Assez Bien (10-12) | Insuffisant (&lt;10) •
-        Document généré le {{ current_date|date:"d/m/Y" }}
-    </div>
+    
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+// Configuration optimale pour l'impression
+window.addEventListener('beforeprint', function() {
+    // Désactiver les marges par défaut du navigateur
+    document.documentElement.style.margin = '0';
+    document.documentElement.style.padding = '0';
+    document.body.style.margin = '0';
+    document.body.style.padding = '0';
+});
+
 // Auto-print si le paramètre print=1 est présent dans l'URL
 document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -512,8 +514,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Ajouter un bouton d'impression visible
+// Fonction pour imprimer avec instructions
 function printBulletin() {
+    // Instructions pour Chrome/Edge
+    if (navigator.userAgent.indexOf('Chrome') > -1 || navigator.userAgent.indexOf('Edg') > -1) {
+        const proceed = confirm("📄 Pour un bulletin propre sans URL et date :\n\n1. Cliquez sur 'Plus de paramètres'\n2. Décochez 'En-têtes et pieds de page'\n3. Réglez les marges sur 'Aucune' ou 'Minimales'\n\nCliquez OK pour continuer l'impression.");
+        if (!proceed) return;
+    }
     window.print();
 }
 </script>

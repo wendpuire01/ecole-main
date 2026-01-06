@@ -50,8 +50,11 @@ class Student(models.Model):
         return self.class_set.first()
 
     def get_average(self, period=None, subject=None):
-        """Calcule la moyenne de l'étudiant avec coefficients des matières"""
+        """Calcule la moyenne de l'étudiant avec coefficients des matières (uniquement devoirs et compositions)"""
         marks = Mark.objects.filter(student=self)
+
+        # Filtrer uniquement les devoirs et compositions
+        marks = marks.filter(assignment__evaluation_type__in=['devoir', 'composition', 'Composition'])
 
         if period:
             marks = marks.filter(assignment__period=period)
@@ -67,17 +70,16 @@ class Student(models.Model):
         # Si on calcule pour UNE matière spécifique
         if subject:
             total_points = 0
-            total_coefficients = 0
+            total_marks = 0
 
             for mark in marks:
-                coefficient = mark.assignment.coefficient
-                total_points += mark.score * coefficient
-                total_coefficients += coefficient
+                total_points += mark.score
+                total_marks += 1
 
-            if total_coefficients == 0:
+            if total_marks == 0:
                 return None
 
-            return round(total_points / total_coefficients, 2)
+            return round(total_points / total_marks, 2)
 
         # Si on calcule la moyenne GÉNÉRALE (toutes matières)
         # Calculer d'abord la moyenne par matière, puis pondérer par coefficient matière
@@ -89,21 +91,20 @@ class Student(models.Model):
                 subjects_averages[subject_name] = {
                     'subject': mark.assignment.subject,
                     'total_points': 0,
-                    'total_coefficients': 0,
+                    'total_marks': 0,
                 }
 
-            coefficient = mark.assignment.coefficient
-            subjects_averages[subject_name]['total_points'] += mark.score * coefficient
-            subjects_averages[subject_name]['total_coefficients'] += coefficient
+            subjects_averages[subject_name]['total_points'] += mark.score
+            subjects_averages[subject_name]['total_marks'] += 1
 
         # Calculer la moyenne générale pondérée par coefficient matière
         total_weighted_points = 0
         total_subject_coefficients = 0
 
         for subject_data in subjects_averages.values():
-            if subject_data['total_coefficients'] > 0:
+            if subject_data['total_marks'] > 0:
                 # Moyenne de la matière
-                subject_avg = subject_data['total_points'] / subject_data['total_coefficients']
+                subject_avg = subject_data['total_points'] / subject_data['total_marks']
 
                 # Coefficient de la matière pour cette classe
                 subject_coef = 1  # Par défaut
@@ -168,7 +169,7 @@ class Teacher(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"<Teacher: {self.name}>"
+        return f"<Teacher: {self.name} {self.first_name}>"
 
     def age(self):
         return int((datetime.date.today() - self.birth_date).days / 365.25)
@@ -315,7 +316,6 @@ class Assignment(models.Model):
     evaluation_type = models.CharField(max_length=20, choices=EVALUATION_TYPES, default='devoir')
     due_date = models.DateField()
     points = models.IntegerField(default=20)
-    coefficient = models.IntegerField(default=1)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

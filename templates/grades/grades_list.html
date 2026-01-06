@@ -75,13 +75,13 @@
 
                 <!-- Informations de l'évaluation -->
                 <div class="row g-3 mb-4 p-3 bg-light rounded">
-                    <div class="col-md-4">
+                    <div class="col-md-5">
                         <label class="form-label fw-bold">Nom de l'évaluation <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" name="assignment_name"
                                placeholder="Ex: Devoir 1, Composition Trimestre 1" required>
                     </div>
 
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label class="form-label fw-bold">Type <span class="text-danger">*</span></label>
                         <select class="form-select" name="evaluation_type" required>
                             <option value="devoir">Devoir</option>
@@ -90,11 +90,6 @@
                             <option value="examen">Examen</option>
                             <option value="tp">Travaux Pratiques</option>
                         </select>
-                    </div>
-
-                    <div class="col-md-2">
-                        <label class="form-label fw-bold">Coefficient</label>
-                        <input type="number" class="form-control" name="coefficient" value="1" min="1" max="10">
                     </div>
 
                     <div class="col-md-3">

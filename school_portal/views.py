@@ -674,7 +674,6 @@ def grades_list(request):
             subject_id = request.POST.get('subject')
             assignment_name = request.POST.get('assignment_name')
             evaluation_type = request.POST.get('evaluation_type', 'devoir')
-            coefficient = int(request.POST.get('coefficient', 1))
             date_str = request.POST.get('date')
 
             print(f"Classe: {classe_id}, Matière: {subject_id}")
@@ -688,7 +687,6 @@ def grades_list(request):
                 name=assignment_name,
                 subject=subject,
                 evaluation_type=evaluation_type,
-                coefficient=coefficient,
                 due_date=datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else datetime.now().date(),
                 points=20
             )
@@ -902,8 +900,11 @@ def report_card(request, student_id):
     # Récupérer la classe de l'élève (relation ManyToMany inverse)
     student_class = student.class_set.first()
 
-    # Récupérer toutes les notes de l'étudiant
-    marks = Mark.objects.filter(student=student).select_related(
+    # Récupérer toutes les notes de l'étudiant (uniquement devoirs et compositions)
+    marks = Mark.objects.filter(
+        student=student,
+        assignment__evaluation_type__in=['devoir', 'composition','Composition']
+    ).select_related(
         'assignment__subject', 'assignment__subject__teacher'
     )
 
@@ -921,7 +922,7 @@ def report_card(request, student_id):
         if subject.name not in subjects_dict:
             # Récupérer le coefficient de la matière pour cette classe
             coefficient = 1  # Valeur par défaut
-            teacher_name = subject.teacher.name + subject.teacher.first_name if subject.teacher else 'N/A'
+            teacher_name = f"{subject.teacher.name} {subject.teacher.first_name}" if subject.teacher else 'N/A'
 
             if student_class:
                 # Chercher le coefficient dans SubjectClass
@@ -939,10 +940,22 @@ def report_card(request, student_id):
                 'subject': subject.name,
                 'teacher': teacher_name,
                 'coefficient': coefficient,
-                'score': mark.score,
-                'total': round(mark.score * coefficient, 2),
+                'scores': [],  # Liste de toutes les notes
                 'rank': None,
             }
+
+        # Ajouter la note à la liste des scores
+        subjects_dict[subject.name]['scores'].append(mark.score)
+
+    # Calculer la moyenne pour chaque matière
+    for subject_data in subjects_dict.values():
+        if subject_data['scores']:
+            avg_score = sum(subject_data['scores']) / len(subject_data['scores'])
+            subject_data['score'] = round(avg_score, 2)
+            subject_data['total'] = round(avg_score * subject_data['coefficient'], 2)
+        else:
+            subject_data['score'] = 0
+            subject_data['total'] = 0
 
     grades = list(subjects_dict.values())
 
@@ -999,7 +1012,7 @@ def report_card(request, student_id):
         'school_logo': school_settings.logo.url if school_settings and school_settings.logo else None,
         'academic_year': '2024-2025',
         'period': '1er Trimestre',
-        'class_teacher': student_class.teacher.name if student_class and student_class.teacher else 'Non assigné',
+        'class_teacher': f"{student_class.teacher.name} {student_class.teacher.first_name}" if student_class and student_class.teacher else 'Non assigné',
         'absences': None,
         'tardies': None,
         'current_date': datetime.now(),
@@ -1042,7 +1055,10 @@ def bulk_report_cards(request):
 
     for student in students:
         student_class = student.class_set.first()
-        marks = Mark.objects.filter(student=student).select_related(
+        marks = Mark.objects.filter(
+            student=student,
+            assignment__evaluation_type__in=['devoir', 'composition', 'Composition']
+        ).select_related(
             'assignment__subject', 'assignment__subject__teacher'
         )
 
@@ -1057,7 +1073,7 @@ def bulk_report_cards(request):
             subject = mark.assignment.subject
             if subject.name not in subjects_dict:
                 coefficient = 1
-                teacher_name = subject.teacher.name if subject.teacher else 'N/A'
+                teacher_name = f"{subject.teacher.name} {subject.teacher.first_name}" if subject.teacher else 'N/A'
 
                 if student_class:
                     try:
@@ -1072,10 +1088,22 @@ def bulk_report_cards(request):
                     'subject': subject.name,
                     'teacher': teacher_name,
                     'coefficient': coefficient,
-                    'score': mark.score,
-                    'total': round(mark.score * coefficient, 2),
+                    'scores': [],  # Liste de toutes les notes
                     'rank': None,
                 }
+
+            # Ajouter la note à la liste des scores
+            subjects_dict[subject.name]['scores'].append(mark.score)
+
+        # Calculer la moyenne pour chaque matière
+        for subject_data in subjects_dict.values():
+            if subject_data['scores']:
+                avg_score = sum(subject_data['scores']) / len(subject_data['scores'])
+                subject_data['score'] = round(avg_score, 2)
+                subject_data['total'] = round(avg_score * subject_data['coefficient'], 2)
+            else:
+                subject_data['score'] = 0
+                subject_data['total'] = 0
 
         grades = list(subjects_dict.values())
 
@@ -1084,15 +1112,16 @@ def bulk_report_cards(request):
             total_coefficients += grade['coefficient']
 
         average = round(total_points / total_coefficients, 2) if total_coefficients > 0 else 0
-
-        if average >= 16:
+        if average >= 17:
+            appreciation = "Tableau d'honneur"
+        if average >= 15:
             appreciation = "Excellent élève. Travail remarquable. Continuez ainsi!"
         elif average >= 14:
-            appreciation = "Très bon élève. Résultats très satisfaisants. Poursuivez vos efforts."
+            appreciation = "Résultats très satisfaisants. Poursuivez vos efforts."
         elif average >= 12:
-            appreciation = "Bon élève. Travail sérieux. Peut mieux faire."
+            appreciation = "Résultats  satisfaisants. Poursuivez vos efforts."
         elif average >= 10:
-            appreciation = "Travail satisfaisant. Efforts à poursuivre."
+            appreciation = "Passable. Efforts à poursuivre."
         else:
             appreciation = "Résultats insuffisants. Travail et concentration nécessaires."
 
@@ -1119,10 +1148,10 @@ def bulk_report_cards(request):
         'class_obj': class_obj,
         'class_name': class_obj.name,
         'school_settings': school_settings,
-        'current_year': '2024-2025',
-        'academic_year': '2024-2025',
+        'current_year': '2025-2026',
+        'academic_year': '2025-2026',
         'period': '1er Trimestre',
-        'class_teacher': class_obj.teacher.name if class_obj.teacher else 'Non assigné',
+        'class_teacher': f"{class_obj.teacher.name} {class_obj.teacher.first_name}" if class_obj.teacher else 'Non assigné',
         'class_size': students.count(),
         'current_date': datetime.now(),
     }

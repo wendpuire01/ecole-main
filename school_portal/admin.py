@@ -97,7 +97,7 @@ class PeriodAdmin(admin.ModelAdmin):
 
 @admin.register(Assignment)
 class AssignmentAdmin(admin.ModelAdmin):
-    list_display = ['name', 'subject', 'evaluation_type_display', 'period', 'coefficient', 'due_date', 'points', 'created_at']
+    list_display = ['name', 'subject', 'evaluation_type_display', 'period', 'due_date', 'points', 'created_at']
     list_filter = ['subject', 'evaluation_type', 'period', 'due_date', 'created_at']
     search_fields = ['name', 'description']
     date_hierarchy = 'due_date'

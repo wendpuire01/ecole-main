@@ -20,6 +20,17 @@
         @page {
             size: A4;
             margin: 10mm;
+            /* Supprimer les headers et footers du navigateur */
+            margin-top: 10mm;
+            margin-bottom: 10mm;
+        }
+
+        @media print {
+            /* Supprimer les headers et footers automatiques du navigateur */
+            html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+            }
         }
 
         @media print {
@@ -61,8 +72,8 @@
         }
 
         .school-logo {
-            width: 60px;
-            height: 60px;
+            width: 160px;
+            height: 160px;
             object-fit: contain;
         }
 
@@ -74,8 +85,8 @@
         }
 
         .school-details {
-            font-size: 9px;
-            color: #666;
+            font-size: 14px;
+            color: black;
         }
 
         .bulletin-title {
@@ -84,14 +95,14 @@
         }
 
         .bulletin-title h1 {
-            font-size: 18px;
+            font-size: 25px;
             margin-bottom: 3px;
             text-transform: uppercase;
         }
 
         .bulletin-title .year {
-            font-size: 11px;
-            color: #666;
+            font-size: 16px;
+            color: black;
         }
 
         /* Student Info */
@@ -103,39 +114,40 @@
             padding: 8px;
             background: #f8f9fa;
             border-radius: 4px;
+            font-size: 14px;
         }
 
         .info-item {
-            font-size: 10px;
+            font-size: 12px;
         }
 
         .info-label {
             font-weight: bold;
-            color: #555;
+            color: black;
         }
 
         /* Grades Table */
         .grades-section {
-            margin: 10px 0;
+            margin: 15px 0;
         }
 
         .grades-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 8px;
-            font-size: 10px;
+            margin-bottom: 10px;
+            font-size: 12px;
         }
 
         .grades-table th,
         .grades-table td {
-            border: 1px solid #333;
-            padding: 4px;
+            border: 2px solid #333;
+            padding: 6px;
             text-align: center;
         }
 
         .grades-table th {
-            background: #333;
-            color: white;
+            background: #ddd;
+            color: black;
             font-weight: bold;
         }
 
@@ -165,15 +177,15 @@
         }
 
         .summary-label {
-            font-size: 9px;
-            color: #666;
+            font-size: 12px;
+            color: black;
             margin-bottom: 2px;
         }
 
         .summary-value {
             font-size: 14px;
             font-weight: bold;
-            color: #333;
+            color: black;
         }
 
         /* Attendance */
@@ -191,13 +203,14 @@
         }
 
         .attendance-label {
-            font-size: 9px;
-            color: #666;
+            font-size: 12px;
+            color: black;
         }
 
         .attendance-value {
-            font-size: 12px;
+            font-size: 14px;
             font-weight: bold;
+            color: black;
         }
 
         /* Appreciation */
@@ -209,7 +222,7 @@
         }
 
         .appreciation-title {
-            font-size: 10px;
+            font-size: 12px;
             font-weight: bold;
             margin-bottom: 4px;
         }
@@ -227,7 +240,7 @@
         }
 
         .signature-title {
-            font-size: 9px;
+            font-size: 12px;
             font-weight: bold;
             margin-bottom: 8px;
             text-transform: uppercase;
@@ -239,8 +252,8 @@
         }
 
         .signature-label {
-            font-size: 8px;
-            color: #666;
+            font-size: 10px;
+            color: black;
         }
 
         /* Print Button */
@@ -265,9 +278,17 @@
     </style>
 </head>
 <body>
-    <button onclick="window.print()" class="print-button no-print">
-        <i class="fas fa-print"></i> Imprimer Tous les Bulletins
-    </button>
+    <div class="no-print" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+        <button onclick="window.print()" class="print-button">
+            <i class="fas fa-print"></i> Imprimer Tous les Bulletins
+        </button>
+        <div style="margin-top: 10px; padding: 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 5px; font-size: 11px; max-width: 300px;">
+            <strong>⚠️ Avant d'imprimer :</strong><br>
+            Dans la fenêtre d'impression, désactivez :<br>
+            • "En-têtes et pieds de page"<br>
+            • ou cochez "Options supplémentaires" → Décochez "En-têtes et pieds de page"
+        </div>
+    </div>
 
     {% for bulletin in bulletins %}
     <div class="bulletin">
@@ -287,7 +308,7 @@
 
             <div class="bulletin-title">
                 <h1>Bulletin de Notes</h1>
-                <div class="year">Année Scolaire {{ current_year }}</div>
+                <div class="year">Année Scolaire {{ academic_year|default:"2025-2026" }}</div>
             </div>
 
             <div class="school-info" style="text-align: right;">
@@ -310,9 +331,11 @@
                 {{ bulletin.student.matricule|default:"--" }}
             </div>
             <div class="info-item">
-                <span class="info-label">Date de Naissance:</span>
-                {{ bulletin.student.birth_date|date:"d/m/Y" }}
-            </div>
+            <span class="info-label">Né(e) le:</span>
+            {% if student.birth_date and student.birth_date|date:"d/m/Y" != "01/01/0001" %}
+             <span class="info-value">{{ student.birth_date|date:"d/m/Y" }}</span>
+            {% endif %}
+        </div>
             <div class="info-item">
                 <span class="info-label">Classe:</span>
                 {{ bulletin.student.class }}
@@ -411,11 +434,7 @@
 
         <!-- Signatures -->
         <div class="signatures-section">
-            <div class="signature-box">
-                <div class="signature-title">L'Enseignant(e)</div>
-                <div class="signature-line"></div>
-                <div class="signature-label">Nom et Signature</div>
-            </div>
+            
             <div class="signature-box">
                 <div class="signature-title">Le Directeur</div>
                 <div class="signature-line"></div>
@@ -423,11 +442,12 @@
             </div>
             <div class="signature-box">
                 <div class="signature-title">Le Parent/Tuteur</div>
-                <div class="signature-line"></div>
+                
                 <div class="signature-label">Nom et Signature</div>
             </div>
         </div>
     </div>
+
     {% empty %}
     <div style="text-align: center; padding: 50px;">
         <p>Aucun bulletin à afficher.</p>
@@ -435,10 +455,32 @@
     {% endfor %}
 
     <script>
+        // Configuration optimale pour l'impression
+        window.addEventListener('beforeprint', function() {
+            // Désactiver les marges par défaut du navigateur
+            document.documentElement.style.margin = '0';
+            document.documentElement.style.padding = '0';
+            document.body.style.margin = '0';
+            document.body.style.padding = '0';
+        });
+
         // Auto-print when page loads (optional)
+        // Décommentez la ligne ci-dessous pour imprimer automatiquement au chargement
         // window.onload = function() {
         //     setTimeout(() => window.print(), 500);
         // };
+
+        // Fonction pour générer un PDF propre
+        function printClean() {
+            // Instructions pour Chrome/Edge
+            if (navigator.userAgent.indexOf('Chrome') > -1 || navigator.userAgent.indexOf('Edg') > -1) {
+                alert("Dans la fenêtre d'impression :\n\n1. Cliquez sur 'Plus de paramètres'\n2. Décochez 'En-têtes et pieds de page'\n3. Réglez les marges sur 'Aucune' ou 'Minimales'");
+            }
+            window.print();
+        }
+
+        // Remplacer le bouton d'impression
+        document.querySelector('.print-button').onclick = printClean;
     </script>
 </body>
 </html>
