@@ -16,9 +16,6 @@ if [ -n "$REDIS_URL" ]; then
     echo "✅ Redis prêt!"
 fi
 
-# Créer le répertoire de la base de données si nécessaire
-mkdir -p /app/db
-
 # Effectuer les migrations
 echo "🔄 Application des migrations..."
 python manage.py migrate --noinput

@@ -13,14 +13,13 @@ services:
       timeout: 5s
       retries: 5
 
-  # Application Django (avec SQLite)
+  # Application Django (avec SQLite dans le dossier du projet)
   web:
     build: .
     container_name: ecole_web
     command: gunicorn school_manager.wsgi:application --bind 0.0.0.0:8000 --workers 3
     volumes:
       - .:/app
-      - db_volume:/app/db
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     ports:
@@ -42,7 +41,6 @@ services:
     command: celery -A school_manager worker --loglevel=info
     volumes:
       - .:/app
-      - db_volume:/app/db
     environment:
       - DEBUG=False
       - SECRET_KEY=django-insecure-change-this-in-production
@@ -59,7 +57,6 @@ services:
     command: celery -A school_manager beat --loglevel=info
     volumes:
       - .:/app
-      - db_volume:/app/db
     environment:
       - DEBUG=False
       - SECRET_KEY=django-insecure-change-this-in-production
@@ -85,6 +82,5 @@ services:
     restart: unless-stopped
 
 volumes:
-  db_volume:       # Volume pour la base de données SQLite
   static_volume:   # Volume pour les fichiers statiques
   media_volume:    # Volume pour les fichiers média

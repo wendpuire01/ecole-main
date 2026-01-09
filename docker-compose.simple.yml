@@ -4,14 +4,13 @@ version: '3.8'
 # Idéal pour le développement et les petits déploiements
 
 services:
-  # Application Django uniquement (avec SQLite)
+  # Application Django uniquement (avec SQLite dans le dossier du projet)
   web:
     build: .
     container_name: ecole_web
     command: gunicorn school_manager.wsgi:application --bind 0.0.0.0:8000 --workers 2
     volumes:
       - .:/app
-      - db_volume:/app/db
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     ports:
@@ -23,6 +22,5 @@ services:
     restart: unless-stopped
 
 volumes:
-  db_volume:       # Volume pour la base de données SQLite
   static_volume:   # Volume pour les fichiers statiques
   media_volume:    # Volume pour les fichiers média

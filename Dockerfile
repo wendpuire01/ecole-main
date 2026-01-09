@@ -13,6 +13,7 @@ WORKDIR /app
 # Installer les dépendances système nécessaires pour WeasyPrint et autres
 RUN apt-get update && apt-get install -y \
     gcc \
+    pkg-config \
     netcat-traditional \
     libffi-dev \
     libjpeg-dev \
@@ -21,7 +22,8 @@ RUN apt-get update && apt-get install -y \
     libpangoft2-1.0-0 \
     libharfbuzz0b \
     libcairo2 \
-    libgdk-pixbuf2.0-0 \
+    libcairo2-dev \
+    libgdk-pixbuf-2.0-0 \
     shared-mime-info \
     && rm -rf /var/lib/apt/lists/*
 
@@ -35,11 +37,11 @@ RUN pip install --upgrade pip && \
 # Copier le code de l'application
 COPY . .
 
-# Créer les répertoires nécessaires
-RUN mkdir -p /app/db /app/staticfiles /app/media
+# Créer les répertoires nécessaires (la DB SQLite est dans le dossier du projet)
+RUN mkdir -p /app/staticfiles /app/media
 
-# Rendre le script d'entrée exécutable
-RUN chmod +x /app/entrypoint.sh
+# Note: entrypoint.sh doit avoir les fins de ligne Unix et être exécutable
+# Exécutez avant le build: dos2unix entrypoint.sh && chmod +x entrypoint.sh
 
 # Exposer le port 8000
 EXPOSE 8000
