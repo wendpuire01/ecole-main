@@ -1,0 +1,28 @@
+version: '3.8'
+
+# Version simplifiée sans Redis, Celery et Nginx
+# Idéal pour le développement et les petits déploiements
+
+services:
+  # Application Django uniquement (avec SQLite)
+  web:
+    build: .
+    container_name: ecole_web
+    command: gunicorn school_manager.wsgi:application --bind 0.0.0.0:8000 --workers 2
+    volumes:
+      - .:/app
+      - db_volume:/app/db
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=False
+      - SECRET_KEY=django-insecure-change-this-in-production
+      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+    restart: unless-stopped
+
+volumes:
+  db_volume:       # Volume pour la base de données SQLite
+  static_volume:   # Volume pour les fichiers statiques
+  media_volume:    # Volume pour les fichiers média
