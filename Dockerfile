@@ -34,14 +34,15 @@ COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt
 
+# Copier d'abord l'entrypoint et le corriger
+COPY entrypoint.sh /app/entrypoint.sh
+RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+
 # Copier le code de l'application
 COPY . .
 
 # Créer les répertoires nécessaires (la DB SQLite est dans le dossier du projet)
 RUN mkdir -p /app/staticfiles /app/media
-
-# Note: entrypoint.sh doit avoir les fins de ligne Unix et être exécutable
-# Exécutez avant le build: dos2unix entrypoint.sh && chmod +x entrypoint.sh
 
 # Exposer le port 8000
 EXPOSE 8000
