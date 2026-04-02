@@ -44,4 +44,11 @@ urlpatterns = [
     path('reports/<int:student_id>/', views.report_card, name='report_card_old'),  # Ancien format pour compatibilité
     path('report-card/<int:student_id>/', views.report_card, name='report_card'),
     path('bulk-report-cards/', views.bulk_report_cards, name='bulk_report_cards'),
+
+    # Periods Management
+    path('periods/', views.periods_list, name='periods_list'),
+    path('periods/create/', views.period_create, name='period_create'),
+    path('periods/<int:period_id>/edit/', views.period_edit, name='period_edit'),
+    path('periods/<int:period_id>/delete/', views.period_delete, name='period_delete'),
+    path('periods/<int:period_id>/activate/', views.activate_period, name='activate_period'),
 ]

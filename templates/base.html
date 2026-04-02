@@ -90,6 +90,11 @@
                 <span>Enseignants</span>
             </a>
 
+            <a href="{% url 'periods_list' %}" class="nav-item {% if 'periods' in request.path %}active{% endif %}">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Périodes</span>
+            </a>
+
             <a href="{% url 'settings' %}" class="nav-item {% if 'settings' in request.path %}active{% endif %}">
                 <i class="fas fa-cog"></i>
                 <span>Paramètres</span>

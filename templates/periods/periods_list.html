@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Gestion des Périodes{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1">Gestion des Périodes Scolaires</h1>
+            <p class="text-muted mb-0">Gérez les trimestres et semestres de l'année scolaire</p>
+        </div>
+        <a href="{% url 'period_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Créer une Période
+        </a>
+    </div>
+
+    {% if messages %}
+    <div class="messages mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if periods %}
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Année Scolaire</th>
+                            <th>Période</th>
+                            <th>Dates</th>
+                            <th>Statut</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for period in periods %}
+                        <tr {% if period.is_active %}class="table-success"{% endif %}>
+                            <td>{{ period.id }}</td>
+                            <td>
+                                <span class="fw-semibold">{{ period.academic_year }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-primary">{{ period.get_name_display }}</span>
+                            </td>
+                            <td>
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    {{ period.start_date|date:"d/m/Y" }} - {{ period.end_date|date:"d/m/Y" }}
+                                </small>
+                            </td>
+                            <td>
+                                {% if period.is_active %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check-circle me-1"></i>ACTIVE
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    {% if not period.is_active %}
+                                    <form method="post" action="{% url 'activate_period' period.id %}" style="display: inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-success" title="Activer cette période">
+                                            <i class="fas fa-power-off"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+
+                                    <a href="{% url 'period_edit' period.id %}" class="btn btn-outline-primary" title="Modifier">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+
+                                    <button type="button" class="btn btn-outline-danger"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#deleteModal{{ period.id }}"
+                                            title="Supprimer">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+
+                                <!-- Modal de confirmation de suppression -->
+                                <div class="modal fade" id="deleteModal{{ period.id }}" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Confirmer la suppression</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p>Êtes-vous sûr de vouloir supprimer la période :</p>
+                                                <p class="fw-bold">{{ period.get_name_display }} - {{ period.academic_year }} ?</p>
+                                                <p class="text-danger small">
+                                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                                    Cette action est irréversible et peut affecter les notes et bulletins associés.
+                                                </p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                                <form method="post" action="{% url 'period_delete' period.id %}" style="display: inline;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-danger">Supprimer</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Information Box -->
+    <div class="alert alert-info mt-4">
+        <h5 class="alert-heading">
+            <i class="fas fa-info-circle me-2"></i>Informations sur les Périodes
+        </h5>
+        <hr>
+        <ul class="mb-0">
+            <li>Une seule période peut être <strong>active</strong> à la fois</li>
+            <li>La période active détermine quelles notes sont affichées sur les bulletins</li>
+            <li>Les moyennes des trimestres précédents sont automatiquement affichées sur les bulletins</li>
+            <li>Assurez-vous d'associer les devoirs à la bonne période lors de leur création</li>
+        </ul>
+    </div>
+
+    {% else %}
+    <div class="alert alert-warning">
+        <h5 class="alert-heading">
+            <i class="fas fa-exclamation-triangle me-2"></i>Aucune période définie
+        </h5>
+        <p class="mb-0">
+            Vous devez créer au moins une période pour générer des bulletins.
+            <a href="{% url 'period_create' %}" class="alert-link">Créer une période maintenant</a>
+        </p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

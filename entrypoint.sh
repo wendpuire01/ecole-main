@@ -5,7 +5,7 @@
 
 set -e
 
-echo "🚀 Démarrage de l'application École..."
+echo "Démarrage de l'application École..."
 
 # Attendre que Redis soit prêt (optionnel)
 if [ -n "$REDIS_URL" ]; then
@@ -15,6 +15,9 @@ if [ -n "$REDIS_URL" ]; then
     done
     echo "✅ Redis prêt!"
 fi
+
+# Créer le répertoire de la base de données si nécessaire
+mkdir -p /app/db
 
 # Effectuer les migrations
 echo "🔄 Application des migrations..."

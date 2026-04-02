@@ -900,16 +900,29 @@ def report_card(request, student_id):
     # Récupérer la classe de l'élève (relation ManyToMany inverse)
     student_class = student.class_set.first()
 
-    # Récupérer toutes les notes de l'étudiant (uniquement devoirs et compositions)
-    marks = Mark.objects.filter(
-        student=student,
-        assignment__evaluation_type__in=['devoir', 'composition','Composition']
-    ).select_related(
+    # Importer les modèles nécessaires
+    from .models import SubjectClass, Period
+
+    # Récupérer la période active
+    current_period = Period.objects.filter(is_active=True).first()
+
+    # Si aucune période active, utiliser la plus récente
+    if not current_period:
+        current_period = Period.objects.order_by('-start_date').first()
+
+    # Récupérer toutes les notes de l'étudiant pour la période active (uniquement devoirs et compositions)
+    marks_filter = {
+        'student': student,
+        'assignment__evaluation_type__in': ['devoir', 'composition', 'Composition']
+    }
+
+    # Ajouter le filtre de période si une période existe
+    if current_period:
+        marks_filter['assignment__period'] = current_period
+
+    marks = Mark.objects.filter(**marks_filter).select_related(
         'assignment__subject', 'assignment__subject__teacher'
     )
-
-    # Importer le modèle SubjectClass
-    from .models import SubjectClass
 
     # Organiser les notes par matière
     grades = []
@@ -959,6 +972,31 @@ def report_card(request, student_id):
 
     grades = list(subjects_dict.values())
 
+    # Ajouter les moyennes des trimestres précédents pour chaque matière
+    if current_period:
+        all_periods = Period.objects.filter(
+            academic_year=current_period.academic_year
+        ).order_by('start_date')
+
+        # Pour chaque matière, récupérer les moyennes des trimestres précédents
+        for grade in grades:
+            grade['previous_averages'] = []
+
+            for period in all_periods:
+                if period.start_date < current_period.start_date:
+                    # Trouver le sujet correspondant
+                    from .models import Subject
+                    try:
+                        subject_obj = Subject.objects.get(name=grade['subject'])
+                        period_avg = student.get_subject_average(subject_obj, period=period)
+
+                        grade['previous_averages'].append({
+                            'period_name': period.get_name_display(),
+                            'average': period_avg if period_avg is not None else '--'
+                        })
+                    except Subject.DoesNotExist:
+                        pass
+
     # Calculer les totaux
     for grade in grades:
         total_points += grade['total']
@@ -992,6 +1030,82 @@ def report_card(request, student_id):
     except:
         school_settings = None
 
+    # Récupérer les notes et moyennes des trimestres précédents
+    previous_periods_data = []
+    if current_period:
+        # Récupérer tous les trimestres de l'année scolaire en cours, triés par date
+        all_periods = Period.objects.filter(
+            academic_year=current_period.academic_year
+        ).order_by('start_date')
+
+        # Identifier les trimestres précédents (avant la période actuelle)
+        for period in all_periods:
+            if period.start_date < current_period.start_date:
+                # Récupérer les notes pour ce trimestre
+                previous_marks = Mark.objects.filter(
+                    student=student,
+                    assignment__period=period,
+                    assignment__evaluation_type__in=['devoir', 'composition', 'Composition']
+                ).select_related('assignment__subject', 'assignment__subject__teacher')
+
+                # Organiser les notes par matière pour ce trimestre
+                previous_subjects_dict = {}
+                for mark in previous_marks:
+                    subject = mark.assignment.subject
+                    if subject.name not in previous_subjects_dict:
+                        # Récupérer le coefficient
+                        coefficient = 1
+                        teacher_name = f"{subject.teacher.name} {subject.teacher.first_name}" if subject.teacher else 'N/A'
+
+                        if student_class:
+                            try:
+                                subject_class = SubjectClass.objects.get(subject=subject, classe=student_class)
+                                coefficient = subject_class.coefficient
+                                if subject_class.teacher:
+                                    teacher_name = f"{subject_class.teacher.name} {subject_class.teacher.first_name}"
+                            except SubjectClass.DoesNotExist:
+                                pass
+
+                        previous_subjects_dict[subject.name] = {
+                            'subject': subject.name,
+                            'teacher': teacher_name,
+                            'coefficient': coefficient,
+                            'scores': [],
+                        }
+
+                    previous_subjects_dict[subject.name]['scores'].append(mark.score)
+
+                # Calculer les moyennes par matière
+                previous_grades = []
+                previous_total_points = 0
+                previous_total_coefficients = 0
+
+                for subject_data in previous_subjects_dict.values():
+                    if subject_data['scores']:
+                        avg_score = sum(subject_data['scores']) / len(subject_data['scores'])
+                        subject_data['score'] = round(avg_score, 2)
+                        subject_data['total'] = round(avg_score * subject_data['coefficient'], 2)
+                    else:
+                        subject_data['score'] = 0
+                        subject_data['total'] = 0
+
+                    previous_grades.append(subject_data)
+                    previous_total_points += subject_data['total']
+                    previous_total_coefficients += subject_data['coefficient']
+
+                # Calculer la moyenne générale du trimestre
+                previous_average = round(previous_total_points / previous_total_coefficients, 2) if previous_total_coefficients > 0 else 0
+
+                # Ajouter à la liste des trimestres précédents
+                if previous_marks.exists():  # Seulement si des notes existent
+                    previous_periods_data.append({
+                        'name': period.get_name_display(),
+                        'grades': previous_grades,
+                        'total_points': round(previous_total_points, 2),
+                        'total_coefficients': previous_total_coefficients,
+                        'average': previous_average
+                    })
+
     context = {
         'student': {
             'full_name': f'{student.name} {student.first_name} {student.surname if student.surname else ""}',
@@ -1010,12 +1124,13 @@ def report_card(request, student_id):
         'school_address': school_settings.address if school_settings else 'Ouagadougou, Burkina Faso',
         'school_phone': school_settings.phone if school_settings else '+226 XX XX XX XX',
         'school_logo': school_settings.logo.url if school_settings and school_settings.logo else None,
-        'academic_year': '2024-2025',
-        'period': '1er Trimestre',
+        'academic_year': current_period.academic_year if current_period else 'N/A',
+        'period': current_period.get_name_display() if current_period else 'N/A',
         'class_teacher': f"{student_class.teacher.name} {student_class.teacher.first_name}" if student_class and student_class.teacher else 'Non assigné',
         'absences': None,
         'tardies': None,
         'current_date': datetime.now(),
+        'previous_periods': previous_periods_data,  # Données complètes des trimestres précédents (notes + moyennes)
     }
 
     return render(request, 'grades/report_card.html', context)
@@ -1039,7 +1154,7 @@ def bulk_report_cards(request):
 
     # Générer les données pour tous les élèves
     bulletins = []
-    from .models import SchoolSettings
+    from .models import SchoolSettings, Period, SubjectClass
 
     # Obtenir ou créer les paramètres de l'école
     school_settings, _ = SchoolSettings.objects.get_or_create(
@@ -1050,19 +1165,40 @@ def bulk_report_cards(request):
         }
     )
 
+    # Récupérer la période active
+    current_period = Period.objects.filter(is_active=True).first()
+
+    # Si aucune période active, utiliser la plus récente
+    if not current_period:
+        current_period = Period.objects.order_by('-start_date').first()
+
     # Calculer tous les rangs en une seule fois pour optimiser les performances
-    rankings = class_obj.get_students_rankings()
+    rankings = class_obj.get_students_rankings(period=current_period)
+
+    # Récupérer les trimestres précédents pour toute la classe
+    previous_periods = []
+    if current_period:
+        all_periods = Period.objects.filter(
+            academic_year=current_period.academic_year
+        ).order_by('start_date')
+
+        previous_periods = [p for p in all_periods if p.start_date < current_period.start_date]
 
     for student in students:
         student_class = student.class_set.first()
-        marks = Mark.objects.filter(
-            student=student,
-            assignment__evaluation_type__in=['devoir', 'composition', 'Composition']
-        ).select_related(
+
+        # Filtrer les notes par période active
+        marks_filter = {
+            'student': student,
+            'assignment__evaluation_type__in': ['devoir', 'composition', 'Composition']
+        }
+
+        if current_period:
+            marks_filter['assignment__period'] = current_period
+
+        marks = Mark.objects.filter(**marks_filter).select_related(
             'assignment__subject', 'assignment__subject__teacher'
         )
-
-        from .models import SubjectClass
 
         grades = []
         total_points = 0
@@ -1107,6 +1243,25 @@ def bulk_report_cards(request):
 
         grades = list(subjects_dict.values())
 
+        # Ajouter les moyennes des trimestres précédents pour chaque matière
+        if current_period:
+            for grade in grades:
+                grade['previous_averages'] = []
+
+                for period in previous_periods:
+                    # Trouver le sujet correspondant
+                    from .models import Subject
+                    try:
+                        subject_obj = Subject.objects.get(name=grade['subject'])
+                        period_avg = student.get_subject_average(subject_obj, period=period)
+
+                        grade['previous_averages'].append({
+                            'period_name': period.get_name_display(),
+                            'average': period_avg if period_avg is not None else '--'
+                        })
+                    except Subject.DoesNotExist:
+                        pass
+
         for grade in grades:
             total_points += grade['total']
             total_coefficients += grade['coefficient']
@@ -1125,6 +1280,74 @@ def bulk_report_cards(request):
         else:
             appreciation = "Résultats insuffisants. Travail et concentration nécessaires."
 
+        # Récupérer les notes et moyennes des trimestres précédents pour cet étudiant
+        student_previous_periods_data = []
+        for period in previous_periods:
+            # Récupérer les notes pour ce trimestre
+            previous_marks = Mark.objects.filter(
+                student=student,
+                assignment__period=period,
+                assignment__evaluation_type__in=['devoir', 'composition', 'Composition']
+            ).select_related('assignment__subject', 'assignment__subject__teacher')
+
+            # Organiser les notes par matière pour ce trimestre
+            previous_subjects_dict = {}
+            for mark in previous_marks:
+                subject = mark.assignment.subject
+                if subject.name not in previous_subjects_dict:
+                    # Récupérer le coefficient
+                    coefficient = 1
+                    teacher_name = f"{subject.teacher.name} {subject.teacher.first_name}" if subject.teacher else 'N/A'
+
+                    if student_class:
+                        try:
+                            subject_class = SubjectClass.objects.get(subject=subject, classe=student_class)
+                            coefficient = subject_class.coefficient
+                            if subject_class.teacher:
+                                teacher_name = f"{subject_class.teacher.name} {subject_class.teacher.first_name}"
+                        except SubjectClass.DoesNotExist:
+                            pass
+
+                    previous_subjects_dict[subject.name] = {
+                        'subject': subject.name,
+                        'teacher': teacher_name,
+                        'coefficient': coefficient,
+                        'scores': [],
+                    }
+
+                previous_subjects_dict[subject.name]['scores'].append(mark.score)
+
+            # Calculer les moyennes par matière
+            previous_grades = []
+            previous_total_points = 0
+            previous_total_coefficients = 0
+
+            for subject_data in previous_subjects_dict.values():
+                if subject_data['scores']:
+                    avg_score = sum(subject_data['scores']) / len(subject_data['scores'])
+                    subject_data['score'] = round(avg_score, 2)
+                    subject_data['total'] = round(avg_score * subject_data['coefficient'], 2)
+                else:
+                    subject_data['score'] = 0
+                    subject_data['total'] = 0
+
+                previous_grades.append(subject_data)
+                previous_total_points += subject_data['total']
+                previous_total_coefficients += subject_data['coefficient']
+
+            # Calculer la moyenne générale du trimestre
+            previous_average = round(previous_total_points / previous_total_coefficients, 2) if previous_total_coefficients > 0 else 0
+
+            # Ajouter à la liste des trimestres précédents
+            if previous_marks.exists():  # Seulement si des notes existent
+                student_previous_periods_data.append({
+                    'name': period.get_name_display(),
+                    'grades': previous_grades,
+                    'total_points': round(previous_total_points, 2),
+                    'total_coefficients': previous_total_coefficients,
+                    'average': previous_average
+                })
+
         bulletins.append({
             'student': {
                 'full_name': f'{student.name} {student.first_name} {student.surname if student.surname else ""}',
@@ -1141,6 +1364,7 @@ def bulk_report_cards(request):
             'appreciation': appreciation,
             'rank': rankings.get(student.id),
             'class_size': students.count(),
+            'previous_periods': student_previous_periods_data,  # Données complètes des trimestres précédents
         })
 
     context = {
@@ -1148,12 +1372,164 @@ def bulk_report_cards(request):
         'class_obj': class_obj,
         'class_name': class_obj.name,
         'school_settings': school_settings,
-        'current_year': '2025-2026',
-        'academic_year': '2025-2026',
-        'period': '1er Trimestre',
+        'current_year': current_period.academic_year if current_period else 'N/A',
+        'academic_year': current_period.academic_year if current_period else 'N/A',
+        'period': current_period.get_name_display() if current_period else 'N/A',
         'class_teacher': f"{class_obj.teacher.name} {class_obj.teacher.first_name}" if class_obj.teacher else 'Non assigné',
         'class_size': students.count(),
         'current_date': datetime.now(),
     }
 
     return render(request, 'grades/bulk_report_cards.html', context)
+
+
+# ===================================
+# PERIODS MANAGEMENT VIEWS
+# ===================================
+
+@login_required
+def periods_list(request):
+    """Liste et gestion des périodes scolaires"""
+    from .models import Period
+
+    periods = Period.objects.all().order_by('-academic_year', 'start_date')
+
+    context = {
+        'periods': periods,
+        'page_title': 'Gestion des Périodes',
+    }
+
+    return render(request, 'periods/periods_list.html', context)
+
+
+@login_required
+@require_POST
+def activate_period(request, period_id):
+    """Active une période et désactive toutes les autres"""
+    from .models import Period
+
+    try:
+        # Récupérer la période
+        period = get_object_or_404(Period, id=period_id)
+
+        # Désactiver toutes les périodes
+        Period.objects.all().update(is_active=False)
+
+        # Activer la période sélectionnée
+        period.is_active = True
+        period.save()
+
+        messages.success(
+            request,
+            f'Période "{period.get_name_display()} - {period.academic_year}" activée avec succès!'
+        )
+
+    except Exception as e:
+        messages.error(request, f'Erreur lors de l\'activation de la période: {str(e)}')
+
+    return redirect('periods_list')
+
+
+@login_required
+def period_create(request):
+    """Créer une nouvelle période"""
+    from .models import Period
+    from django import forms
+
+    class PeriodForm(forms.ModelForm):
+        class Meta:
+            model = Period
+            fields = ['name', 'academic_year', 'start_date', 'end_date', 'is_active']
+            widgets = {
+                'start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+                'end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+                'name': forms.Select(attrs={'class': 'form-control'}),
+                'academic_year': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '2025-2026'}),
+                'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            }
+
+    if request.method == 'POST':
+        form = PeriodForm(request.POST)
+        if form.is_valid():
+            period = form.save(commit=False)
+
+            # Si cette période est activée, désactiver toutes les autres
+            if period.is_active:
+                Period.objects.all().update(is_active=False)
+
+            period.save()
+            messages.success(request, f'Période "{period.get_name_display()}" créée avec succès!')
+            return redirect('periods_list')
+    else:
+        form = PeriodForm()
+
+    context = {
+        'form': form,
+        'page_title': 'Créer une Période',
+        'submit_text': 'Créer',
+    }
+
+    return render(request, 'periods/period_form.html', context)
+
+
+@login_required
+def period_edit(request, period_id):
+    """Modifier une période existante"""
+    from .models import Period
+    from django import forms
+
+    period = get_object_or_404(Period, id=period_id)
+
+    class PeriodForm(forms.ModelForm):
+        class Meta:
+            model = Period
+            fields = ['name', 'academic_year', 'start_date', 'end_date', 'is_active']
+            widgets = {
+                'start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+                'end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+                'name': forms.Select(attrs={'class': 'form-control'}),
+                'academic_year': forms.TextInput(attrs={'class': 'form-control'}),
+                'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            }
+
+    if request.method == 'POST':
+        form = PeriodForm(request.POST, instance=period)
+        if form.is_valid():
+            updated_period = form.save(commit=False)
+
+            # Si cette période est activée, désactiver toutes les autres
+            if updated_period.is_active:
+                Period.objects.exclude(id=period_id).update(is_active=False)
+
+            updated_period.save()
+            messages.success(request, f'Période "{period.get_name_display()}" modifiée avec succès!')
+            return redirect('periods_list')
+    else:
+        form = PeriodForm(instance=period)
+
+    context = {
+        'form': form,
+        'period': period,
+        'page_title': f'Modifier la Période: {period.get_name_display()}',
+        'submit_text': 'Mettre à jour',
+    }
+
+    return render(request, 'periods/period_form.html', context)
+
+
+@login_required
+@require_POST
+def period_delete(request, period_id):
+    """Supprimer une période"""
+    from .models import Period
+
+    period = get_object_or_404(Period, id=period_id)
+    period_name = period.get_name_display()
+
+    try:
+        period.delete()
+        messages.success(request, f'Période "{period_name}" supprimée avec succès!')
+    except Exception as e:
+        messages.error(request, f'Erreur lors de la suppression: {str(e)}')
+
+    return redirect('periods_list')
