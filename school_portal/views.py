@@ -682,13 +682,18 @@ def grades_list(request):
             subject = Subject.objects.get(pk=subject_id)
             classe = Class.objects.get(pk=classe_id)
 
+            # Récupérer la période active
+            from .models import Period
+            current_period = Period.objects.filter(is_active=True).first()
+
             # Créer l'assignment pour cette évaluation
             assignment = Assignment.objects.create(
                 name=assignment_name,
                 subject=subject,
                 evaluation_type=evaluation_type,
                 due_date=datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else datetime.now().date(),
-                points=20
+                points=20,
+                period=current_period  # Associer à la période active
             )
 
             # Enregistrer les notes pour chaque élève
@@ -784,6 +789,10 @@ def save_grade(request):
         student = Student.objects.get(pk=student_id)
         subject = Subject.objects.get(pk=subject_id)
 
+        # Récupérer la période active
+        from .models import Period
+        current_period = Period.objects.filter(is_active=True).first()
+
         # Créer ou récupérer un assignment par défaut
         assignment, created = Assignment.objects.get_or_create(
             name=f'{subject.name} - Évaluation',
@@ -791,7 +800,8 @@ def save_grade(request):
             defaults={
                 'description': 'Évaluation générale',
                 'due_date': datetime.now().date(),
-                'points': 20
+                'points': 20,
+                'period': current_period  # Associer à la période active
             }
         )
 
@@ -972,30 +982,23 @@ def report_card(request, student_id):
 
     grades = list(subjects_dict.values())
 
-    # Ajouter les moyennes des trimestres précédents pour chaque matière
+    # Calculer les moyennes générales des trimestres précédents (une seule valeur par trimestre)
+    previous_periods_general_averages = []
     if current_period:
         all_periods = Period.objects.filter(
             academic_year=current_period.academic_year
         ).order_by('start_date')
 
-        # Pour chaque matière, récupérer les moyennes des trimestres précédents
-        for grade in grades:
-            grade['previous_averages'] = []
+        # Calculer la moyenne générale pour chaque trimestre précédent
+        for period in all_periods:
+            if period.start_date < current_period.start_date:
+                # Calculer la moyenne générale de l'étudiant pour ce trimestre
+                period_general_avg = student.get_average(period=period)
 
-            for period in all_periods:
-                if period.start_date < current_period.start_date:
-                    # Trouver le sujet correspondant
-                    from .models import Subject
-                    try:
-                        subject_obj = Subject.objects.get(name=grade['subject'])
-                        period_avg = student.get_subject_average(subject_obj, period=period)
-
-                        grade['previous_averages'].append({
-                            'period_name': period.get_name_display(),
-                            'average': period_avg if period_avg is not None else '--'
-                        })
-                    except Subject.DoesNotExist:
-                        pass
+                previous_periods_general_averages.append({
+                    'period_name': period.get_name_display(),
+                    'average': round(period_general_avg, 2) if period_general_avg is not None else '--'
+                })
 
     # Calculer les totaux
     for grade in grades:
@@ -1131,6 +1134,7 @@ def report_card(request, student_id):
         'tardies': None,
         'current_date': datetime.now(),
         'previous_periods': previous_periods_data,  # Données complètes des trimestres précédents (notes + moyennes)
+        'previous_periods_general_averages': previous_periods_general_averages,  # Moyennes générales des trimestres précédents
     }
 
     return render(request, 'grades/report_card.html', context)
@@ -1243,24 +1247,17 @@ def bulk_report_cards(request):
 
         grades = list(subjects_dict.values())
 
-        # Ajouter les moyennes des trimestres précédents pour chaque matière
+        # Calculer les moyennes générales des trimestres précédents (une seule valeur par trimestre)
+        previous_periods_general_averages = []
         if current_period:
-            for grade in grades:
-                grade['previous_averages'] = []
+            for period in previous_periods:
+                # Calculer la moyenne générale de l'étudiant pour ce trimestre
+                period_general_avg = student.get_average(period=period)
 
-                for period in previous_periods:
-                    # Trouver le sujet correspondant
-                    from .models import Subject
-                    try:
-                        subject_obj = Subject.objects.get(name=grade['subject'])
-                        period_avg = student.get_subject_average(subject_obj, period=period)
-
-                        grade['previous_averages'].append({
-                            'period_name': period.get_name_display(),
-                            'average': period_avg if period_avg is not None else '--'
-                        })
-                    except Subject.DoesNotExist:
-                        pass
+                previous_periods_general_averages.append({
+                    'period_name': period.get_name_display(),
+                    'average': round(period_general_avg, 2) if period_general_avg is not None else '--'
+                })
 
         for grade in grades:
             total_points += grade['total']
@@ -1365,6 +1362,7 @@ def bulk_report_cards(request):
             'rank': rankings.get(student.id),
             'class_size': students.count(),
             'previous_periods': student_previous_periods_data,  # Données complètes des trimestres précédents
+            'previous_periods_general_averages': previous_periods_general_averages,  # Moyennes générales des trimestres précédents
         })
 
     context = {

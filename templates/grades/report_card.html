@@ -439,11 +439,6 @@
                 <th width="20%">Matière</th>
                 <th width="18%">Enseignant</th>
                 <th class="text-center" width="6%">Coef.</th>
-                {% if grades.0.previous_averages %}
-                    {% for prev in grades.0.previous_averages %}
-                        <th class="text-center" width="8%" style="font-size: 7pt; background-color: #e3f2fd;">Moy {{ prev.period_name }}</th>
-                    {% endfor %}
-                {% endif %}
                 <th class="text-center" width="8%">Note/20</th>
                 <th class="text-center" width="8%">Total</th>
                 <th class="text-center" width="6%">Rang</th>
@@ -456,11 +451,6 @@
                 <td><div class="subject-name">{{ grade.subject }}</div></td>
                 <td><div class="teacher-name">{{ grade.teacher }}</div></td>
                 <td class="text-center fw-semibold">{{ grade.coefficient }}</td>
-                {% for prev in grade.previous_averages %}
-                    <td class="text-center" style="font-size: 8pt; background-color: #f5f5f5; color: #666;">
-                        {{ prev.average }}
-                    </td>
-                {% endfor %}
                 <td class="text-center">
                     <span class="grade-value">
                         {{ grade.score }}
@@ -487,7 +477,7 @@
     <!-- Summary -->
     <div class="summary-section">
         <div style="font-size: 10pt; font-weight: 600; margin-bottom: 4px;">Résumé des Résultats</div>
-        <div class="summary-grid">
+        <div class="summary-grid" style="grid-template-columns: repeat({{ previous_periods_general_averages|length|add:4 }}, 1fr);">
             <div class="summary-item">
                 <div class="summary-label">Total Points</div>
                 <div class="summary-value">{{ total_points|default:"295" }}</div>
@@ -504,6 +494,12 @@
                 <div class="summary-label">Rang</div>
                 <div class="summary-value">{{ rank|default:"5" }}/{{ class_size|default:"45" }}</div>
             </div>
+            {% for prev in previous_periods_general_averages %}
+            <div class="summary-item" style="background: #e3f2fd; border: 2px solid #2196f3;">
+                <div class="summary-label" style="color: #1565c0;">Moyenne {{ prev.period_name }}</div>
+                <div class="summary-value" style="color: #0d47a1;">{{ prev.average }}/20</div>
+            </div>
+            {% endfor %}
         </div>
     </div>
 
