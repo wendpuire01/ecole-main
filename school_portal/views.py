@@ -1109,6 +1109,27 @@ def report_card(request, student_id):
                         'average': previous_average
                     })
 
+    # Calcul de la moyenne annuelle (uniquement pour le 3e trimestre ou 2e semestre)
+    annual_average = None
+    is_last_period = current_period and current_period.name in ['trimestre3', 'semestre2']
+    if is_last_period:
+        all_year_periods = Period.objects.filter(
+            academic_year=current_period.academic_year
+        ).order_by('start_date')
+
+        period_averages = []
+        for period in all_year_periods:
+            if period.id == current_period.id:
+                if average > 0:
+                    period_averages.append(average)
+            else:
+                p_avg = student.get_average(period=period)
+                if p_avg is not None:
+                    period_averages.append(p_avg)
+
+        if period_averages:
+            annual_average = round(sum(period_averages) / len(period_averages), 2)
+
     context = {
         'student': {
             'full_name': f'{student.name} {student.first_name} {student.surname if student.surname else ""}',
@@ -1135,6 +1156,8 @@ def report_card(request, student_id):
         'current_date': datetime.now(),
         'previous_periods': previous_periods_data,  # Données complètes des trimestres précédents (notes + moyennes)
         'previous_periods_general_averages': previous_periods_general_averages,  # Moyennes générales des trimestres précédents
+        'annual_average': annual_average,
+        'is_last_period': is_last_period,
     }
 
     return render(request, 'grades/report_card.html', context)
@@ -1345,6 +1368,27 @@ def bulk_report_cards(request):
                     'average': previous_average
                 })
 
+        # Calcul de la moyenne annuelle (uniquement pour le 3e trimestre ou 2e semestre)
+        student_annual_average = None
+        is_last_period = current_period and current_period.name in ['trimestre3', 'semestre2']
+        if is_last_period:
+            all_year_periods = Period.objects.filter(
+                academic_year=current_period.academic_year
+            ).order_by('start_date')
+
+            period_averages = []
+            for period in all_year_periods:
+                if period.id == current_period.id:
+                    if average > 0:
+                        period_averages.append(average)
+                else:
+                    p_avg = student.get_average(period=period)
+                    if p_avg is not None:
+                        period_averages.append(p_avg)
+
+            if period_averages:
+                student_annual_average = round(sum(period_averages) / len(period_averages), 2)
+
         bulletins.append({
             'student': {
                 'full_name': f'{student.name} {student.first_name} {student.surname if student.surname else ""}',
@@ -1363,6 +1407,7 @@ def bulk_report_cards(request):
             'class_size': students.count(),
             'previous_periods': student_previous_periods_data,  # Données complètes des trimestres précédents
             'previous_periods_general_averages': previous_periods_general_averages,  # Moyennes générales des trimestres précédents
+            'annual_average': student_annual_average,
         })
 
     context = {
@@ -1376,6 +1421,7 @@ def bulk_report_cards(request):
         'class_teacher': f"{class_obj.teacher.name} {class_obj.teacher.first_name}" if class_obj.teacher else 'Non assigné',
         'class_size': students.count(),
         'current_date': datetime.now(),
+        'is_last_period': current_period and current_period.name in ['trimestre3', 'semestre2'],
     }
 
     return render(request, 'grades/bulk_report_cards.html', context)

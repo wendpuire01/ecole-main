@@ -311,7 +311,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{% static 'vendor/chart.umd.min.js' %}"></script>
 <script>
 // Revenue Chart
 const ctx = document.getElementById('revenueChart');
