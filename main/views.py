@@ -2,10 +2,18 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
-from django.db.models import Count, Sum, Avg
-from .models import Anonce
+from django.db.models import Count, Sum, Avg, Q
+from django.utils import timezone
+from decimal import Decimal
+import datetime
+import json
+
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+
+from .models import Anonce, Notification
 from school_portal.models import Student, Class, Teacher, Subject, Mark
-from datetime import datetime, timedelta
+from school_finance.models import Payment, Receipt, AcademicYear
 
 
 def home(request):
@@ -46,81 +54,106 @@ def logout_view(request):
 
 @login_required
 def dashboard(request):
-    """Dashboard principal avec statistiques"""
+    today = timezone.now().date()
+    active_year = AcademicYear.objects.filter(is_active=True).first()
 
-    # Statistiques générales
+    # --- Compteurs généraux ---
     total_students = Student.objects.count()
     total_classes = Class.objects.count()
     total_teachers = Teacher.objects.count()
 
-    # Calcul des statistiques financières (simulées pour l'instant)
-    # À remplacer par de vraies données quand le module finance sera prêt
-    total_payments = 8500000  # FCFA
-    pending_payments = 156
+    # Nouveaux élèves ce mois
+    month_start = today.replace(day=1)
+    new_students_month = Student.objects.filter(
+        created_at__date__gte=month_start
+    ).count() if hasattr(Student, 'created_at') else 0
 
-    # Paiements récents (simulés)
-    recent_payments = [
-        {
-            'student_name': 'Jean KABORE',
-            'student_class': 'Terminale S1',
-            'type': 'Scolarité',
-            'amount': '150,000',
-            'date': datetime.now() - timedelta(minutes=5),
-            'status': 'Payé',
-            'status_color': 'success'
-        },
-        {
-            'student_name': 'Marie TRAORE',
-            'student_class': 'Première L2',
-            'type': 'Inscription',
-            'amount': '200,000',
-            'date': datetime.now() - timedelta(hours=1),
-            'status': 'Payé',
-            'status_color': 'success'
-        },
-        {
-            'student_name': 'Paul OUEDRAOGO',
-            'student_class': 'Seconde A',
-            'type': 'Scolarité',
-            'amount': '150,000',
-            'date': datetime.now() - timedelta(hours=2),
-            'status': 'En attente',
-            'status_color': 'warning'
-        },
-    ]
+    # --- Statistiques financières (année active) ---
+    payments_qs = Payment.objects.all()
+    if active_year:
+        payments_qs = payments_qs.filter(academic_year=active_year)
 
-    # Classes avec statistiques
+    finance_stats = payments_qs.aggregate(
+        total_received=Sum('paid_amount'),
+        total_due=Sum('total_amount'),
+    )
+    total_received = finance_stats['total_received'] or Decimal('0')
+    total_due = finance_stats['total_due'] or Decimal('0')
+    total_remaining = total_due - total_received
+
+    pending_count = payments_qs.filter(status__in=['pending', 'partial']).count()
+
+    # Encaissements du mois en cours
+    monthly_received = payments_qs.filter(
+        payment_date__gte=month_start
+    ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
+
+    # --- Paiements récents ---
+    recent_payments = (
+        Payment.objects
+        .select_related('student', 'fee_type', 'payment_method')
+        .order_by('-payment_date', '-created_at')[:8]
+    )
+
+    # --- Activités récentes (reçus + inscriptions) ---
+    recent_receipts = (
+        Receipt.objects
+        .select_related('payment__student', 'payment__fee_type')
+        .order_by('-created_at')[:5]
+    )
+
+    # --- Évolution mensuelle (6 derniers mois) ---
+    month_labels = []
+    month_amounts = []
+    for i in range(5, -1, -1):
+        d = today - datetime.timedelta(days=i * 30)
+        label = d.strftime('%b %Y')
+        amount = float(
+            Payment.objects.filter(
+                payment_date__year=d.year,
+                payment_date__month=d.month,
+            ).aggregate(t=Sum('paid_amount'))['t'] or 0
+        )
+        month_labels.append(label)
+        month_amounts.append(amount)
+
+    # --- Classes avec stats ---
     classes = []
-    for class_obj in Class.objects.all()[:6]:
-        students_count = class_obj.students.count()
-        subjects_count = class_obj.subject_set.count()
-
-        # Calculer la moyenne de la classe (si des notes existent)
-        class_average = Mark.objects.filter(
-            student__class=class_obj
-        ).aggregate(avg=Avg('score'))['avg']
-
+    for cls in Class.objects.prefetch_related('students', 'subject_set').order_by('name')[:6]:
+        students_count = cls.students.count()
+        subjects_count = cls.subject_set.count()
         classes.append({
-            'id': class_obj.id,
-            'name': class_obj.name,
-            'teacher': class_obj.teacher.name if class_obj.teacher else 'Non assigné',
+            'id': cls.id,
+            'name': cls.name,
+            'teacher': cls.teacher.name if hasattr(cls, 'teacher') and cls.teacher else '—',
             'students_count': students_count,
             'subjects_count': subjects_count,
-            'average': round(class_average, 2) if class_average else None,
         })
 
-    # Annonces récentes
-    announcements = Anonce.objects.all().order_by('-create_at')[:5]
+    # --- Annonces ---
+    announcements = Anonce.objects.order_by('-create_at')[:5]
 
     context = {
+        # Compteurs
         'total_students': total_students,
-        'total_payments': f'{total_payments/1000000:.1f}M' if total_payments > 1000000 else f'{total_payments/1000:.0f}K',
-        'pending_payments': pending_payments,
         'total_classes': total_classes,
         'total_teachers': total_teachers,
+        'new_students_month': new_students_month,
+        # Finance
+        'total_received': total_received,
+        'total_due': total_due,
+        'total_remaining': total_remaining,
+        'pending_count': pending_count,
+        'monthly_received': monthly_received,
+        'active_year': active_year,
+        # Listes
         'recent_payments': recent_payments,
+        'recent_receipts': recent_receipts,
         'classes': classes,
         'announcements': announcements,
+        # Chart
+        'chart_labels': json.dumps(month_labels),
+        'chart_amounts': json.dumps(month_amounts),
     }
 
     return render(request, 'dashboard.html', context)
@@ -174,3 +207,39 @@ def settings_view(request):
         'school_settings': school_settings,
     }
     return render(request, 'settings.html', context)
+
+
+# ===================================
+# NOTIFICATIONS
+# ===================================
+
+@login_required
+def notifications_api(request):
+    """Retourne les notifications non lues (JSON) pour le polling AJAX."""
+    notifs = Notification.objects.filter(
+        recipient=request.user, is_read=False
+    ).values('id', 'notif_type', 'title', 'body', 'link', 'created_at')[:20]
+
+    data = []
+    for n in notifs:
+        n['created_at'] = n['created_at'].strftime('%d/%m/%Y %H:%M')
+        data.append(n)
+
+    return JsonResponse({
+        'count': len(data),
+        'notifications': data,
+    })
+
+
+@login_required
+@require_POST
+def notification_mark_read(request, pk):
+    Notification.objects.filter(pk=pk, recipient=request.user).update(is_read=True)
+    return JsonResponse({'ok': True})
+
+
+@login_required
+@require_POST
+def notifications_mark_all_read(request):
+    Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
+    return JsonResponse({'ok': True})

@@ -1,349 +1,325 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Dashboard - Gestion d'École{% endblock %}
+{% block title %}Tableau de Bord{% endblock %}
 
 {% block content %}
-<div class="dashboard">
-    <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="h2 mb-1">Tableau de Bord</h1>
-            <p class="text-muted mb-0">Vue d'ensemble de votre établissement</p>
-        </div>
-        <div>
-            <button class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>Nouvelle Action
-            </button>
-        </div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-1">Tableau de Bord</h1>
+        <p class="text-muted mb-0">
+            Vue d'ensemble{% if active_year %} — {{ active_year.name }}{% endif %}
+        </p>
     </div>
+    <a href="{% url 'payment_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Nouveau paiement
+    </a>
+</div>
 
-    <!-- Statistics Cards -->
-    <div class="row g-3 mb-4">
-        <div class="col-12 col-sm-6 col-lg-3">
-            <div class="stat-card primary">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <p class="stat-label">Total Étudiants</p>
-                        <h3 class="stat-value">{{ total_students|default:"1,234" }}</h3>
-                        <p class="stat-change positive">
-                            <i class="fas fa-arrow-up"></i> +12% ce mois
-                        </p>
-                    </div>
-                    <div class="stat-icon primary">
-                        <i class="fas fa-user-graduate"></i>
-                    </div>
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="stat-card primary">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <p class="stat-label">Total Élèves</p>
+                    <h3 class="stat-value">{{ total_students }}</h3>
+                    <p class="stat-change {% if new_students_month > 0 %}positive{% else %}neutral{% endif %}">
+                        {% if new_students_month > 0 %}
+                        <i class="fas fa-arrow-up"></i> +{{ new_students_month }} ce mois
+                        {% else %}
+                        <i class="fas fa-minus"></i> Aucun nouveau ce mois
+                        {% endif %}
+                    </p>
                 </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-sm-6 col-lg-3">
-            <div class="stat-card success">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <p class="stat-label">Paiements Reçus</p>
-                        <h3 class="stat-value">{{ total_payments|default:"850K" }}</h3>
-                        <p class="stat-change positive">
-                            <i class="fas fa-arrow-up"></i> +8% ce mois
-                        </p>
-                    </div>
-                    <div class="stat-icon success">
-                        <i class="fas fa-money-bill-wave"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-sm-6 col-lg-3">
-            <div class="stat-card warning">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <p class="stat-label">En Attente</p>
-                        <h3 class="stat-value">{{ pending_payments|default:"156" }}</h3>
-                        <p class="stat-change negative">
-                            <i class="fas fa-arrow-down"></i> -3% ce mois
-                        </p>
-                    </div>
-                    <div class="stat-icon warning">
-                        <i class="fas fa-exclamation-triangle"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-sm-6 col-lg-3">
-            <div class="stat-card info">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <p class="stat-label">Classes Actives</p>
-                        <h3 class="stat-value">{{ total_classes|default:"45" }}</h3>
-                        <p class="stat-change positive">
-                            <i class="fas fa-arrow-up"></i> +5 cette année
-                        </p>
-                    </div>
-                    <div class="stat-icon info">
-                        <i class="fas fa-chalkboard-user"></i>
-                    </div>
-                </div>
+                <div class="stat-icon primary"><i class="fas fa-user-graduate"></i></div>
             </div>
         </div>
     </div>
 
-    <!-- Charts & Tables Row -->
-    <div class="row g-4 mb-4">
-        <!-- Recent Payments -->
-        <div class="col-12 col-lg-8">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">Paiements Récents</h5>
-                    <a href="{% url 'payments_list' %}" class="btn btn-sm btn-outline-primary">Voir Tout</a>
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="stat-card success">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <p class="stat-label">Encaissé{% if active_year %} ({{ active_year.name }}){% endif %}</p>
+                    <h3 class="stat-value">
+                        {% if total_received >= 1000000 %}
+                            {{ total_received|floatformat:0|slice:"-6" }}M
+                        {% elif total_received >= 1000 %}
+                            {{ total_received|floatformat:0 }} F
+                        {% else %}
+                            0 F
+                        {% endif %}
+                    </h3>
+                    <p class="stat-change positive">
+                        <i class="fas fa-calendar"></i>
+                        {{ monthly_received|floatformat:0 }} ce mois
+                    </p>
                 </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Étudiant</th>
-                                    <th>Type</th>
-                                    <th>Montant</th>
-                                    <th>Date</th>
-                                    <th>Statut</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for payment in recent_payments %}
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="user-avatar me-2">
-                                                <i class="fas fa-user-circle text-primary"></i>
-                                            </div>
-                                            <div>
-                                                <div class="fw-semibold">{{ payment.student_name }}</div>
-                                                <small class="text-muted">{{ payment.student_class }}</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>{{ payment.type }}</td>
-                                    <td class="fw-semibold">{{ payment.amount }} FCFA</td>
-                                    <td>{{ payment.date|date:"d/m/Y" }}</td>
-                                    <td>
-                                        <span class="badge bg-{{ payment.status_color }}">
-                                            {{ payment.status }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <button class="btn btn-sm btn-icon">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-icon">
-                                            <i class="fas fa-print"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="6" class="text-center py-4">
-                                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                                        <p class="text-muted">Aucun paiement récent</p>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Quick Stats -->
-        <div class="col-12 col-lg-4">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Activités Récentes</h5>
-                </div>
-                <div class="card-body">
-                    <div class="activity-item mb-3">
-                        <div class="d-flex align-items-start">
-                            <div class="activity-icon bg-success me-3">
-                                <i class="fas fa-check"></i>
-                            </div>
-                            <div class="flex-grow-1">
-                                <p class="mb-1 fw-semibold">Nouveau paiement</p>
-                                <small class="text-muted">Jean Kabore - 150,000 FCFA</small>
-                                <div class="text-muted" style="font-size: 0.75rem;">Il y a 5 min</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="activity-item mb-3">
-                        <div class="d-flex align-items-start">
-                            <div class="activity-icon bg-primary me-3">
-                                <i class="fas fa-user-plus"></i>
-                            </div>
-                            <div class="flex-grow-1">
-                                <p class="mb-1 fw-semibold">Nouvelle inscription</p>
-                                <small class="text-muted">Marie Traoré - Terminale S1</small>
-                                <div class="text-muted" style="font-size: 0.75rem;">Il y a 1 heure</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="activity-item mb-3">
-                        <div class="d-flex align-items-start">
-                            <div class="activity-icon bg-info me-3">
-                                <i class="fas fa-clipboard-list"></i>
-                            </div>
-                            <div class="flex-grow-1">
-                                <p class="mb-1 fw-semibold">Notes ajoutées</p>
-                                <small class="text-muted">Mathématiques - Terminale S1</small>
-                                <div class="text-muted" style="font-size: 0.75rem;">Il y a 2 heures</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="activity-item">
-                        <div class="d-flex align-items-start">
-                            <div class="activity-icon bg-warning me-3">
-                                <i class="fas fa-exclamation-triangle"></i>
-                            </div>
-                            <div class="flex-grow-1">
-                                <p class="mb-1 fw-semibold">Paiement en retard</p>
-                                <small class="text-muted">5 étudiants</small>
-                                <div class="text-muted" style="font-size: 0.75rem;">Il y a 3 heures</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Revenue Chart -->
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Revenus Mensuels</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="revenueChart" height="200"></canvas>
-                </div>
+                <div class="stat-icon success"><i class="fas fa-money-bill-wave"></i></div>
             </div>
         </div>
     </div>
 
-    <!-- Classes Overview -->
-    <div class="row g-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">Aperçu des Classes</h5>
-                    <a href="{% url 'classes_list' %}" class="btn btn-sm btn-outline-primary">Gérer les Classes</a>
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="stat-card warning">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <p class="stat-label">Reste à percevoir</p>
+                    <h3 class="stat-value">
+                        {% if total_remaining >= 1000000 %}
+                            {{ total_remaining|floatformat:0|slice:"-6" }}M
+                        {% else %}
+                            {{ total_remaining|floatformat:0 }} F
+                        {% endif %}
+                    </h3>
+                    <p class="stat-change {% if pending_count > 0 %}negative{% else %}positive{% endif %}">
+                        <i class="fas fa-{% if pending_count > 0 %}exclamation-triangle{% else %}check{% endif %}"></i>
+                        {{ pending_count }} paiement{{ pending_count|pluralize }} incomplet{{ pending_count|pluralize }}
+                    </p>
                 </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        {% for class in classes %}
-                        <div class="col-12 col-md-6 col-lg-4">
-                            <div class="class-card p-3 border rounded">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <div>
-                                        <h6 class="mb-1">{{ class.name }}</h6>
-                                        <small class="text-muted">{{ class.teacher }}</small>
-                                    </div>
-                                    <span class="badge bg-primary">{{ class.students_count }} élèves</span>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center mt-3">
-                                    <small class="text-muted">
-                                        <i class="fas fa-book me-1"></i>{{ class.subjects_count }} matières
-                                    </small>
-                                    <a href="#" class="text-primary" style="font-size: 0.875rem;">
-                                        Voir détails <i class="fas fa-arrow-right ms-1"></i>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                        {% empty %}
-                        <div class="col-12 text-center py-5">
-                            <i class="fas fa-chalkboard-user fa-4x text-muted mb-3"></i>
-                            <p class="text-muted">Aucune classe créée</p>
-                            <a href="{% url 'classes_create' %}" class="btn btn-primary">
-                                <i class="fas fa-plus me-2"></i>Créer une Classe
-                            </a>
-                        </div>
-                        {% endfor %}
-                    </div>
+                <div class="stat-icon warning"><i class="fas fa-clock"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="stat-card info">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <p class="stat-label">Classes / Enseignants</p>
+                    <h3 class="stat-value">{{ total_classes }}</h3>
+                    <p class="stat-change neutral">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                        {{ total_teachers }} enseignant{{ total_teachers|pluralize }}
+                    </p>
                 </div>
+                <div class="stat-icon info"><i class="fas fa-chalkboard-user"></i></div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Graphe + Paiements récents -->
+<div class="row g-4 mb-4">
+    <!-- Paiements récents -->
+    <div class="col-12 col-lg-8">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0"><i class="fas fa-list me-2 text-primary"></i>Paiements Récents</h5>
+                <a href="{% url 'payments_list' %}" class="btn btn-sm btn-outline-primary">Voir tout</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Élève</th>
+                                <th>Type</th>
+                                <th class="text-end">Payé</th>
+                                <th class="text-end">Total</th>
+                                <th>Date</th>
+                                <th>Statut</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in recent_payments %}
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">{{ p.student.name }} {{ p.student.first_name }}</div>
+                                    <small class="text-muted">{{ p.student.matricule }}</small>
+                                </td>
+                                <td><small>{{ p.fee_type.name }}</small></td>
+                                <td class="text-end text-success fw-semibold">{{ p.paid_amount|floatformat:0 }}</td>
+                                <td class="text-end text-muted">{{ p.total_amount|floatformat:0 }}</td>
+                                <td><small>{{ p.payment_date|date:"d/m/Y" }}</small></td>
+                                <td>
+                                    {% if p.status == 'completed' %}
+                                    <span class="badge bg-success">Complet</span>
+                                    {% elif p.status == 'partial' %}
+                                    <span class="badge bg-warning text-dark">Partiel</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">En attente</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'payment_detail' p.pk %}" class="btn btn-sm btn-icon" title="Détail">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                                    Aucun paiement enregistré
+                                    <div class="mt-2">
+                                        <a href="{% url 'payment_create' %}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-plus me-1"></i>Enregistrer un paiement
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Colonne droite -->
+    <div class="col-12 col-lg-4 d-flex flex-column gap-4">
+        <!-- Graphe revenus -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-chart-line me-2 text-success"></i>Encaissements (6 mois)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="revenueChart" height="180"></canvas>
+            </div>
+        </div>
+
+        <!-- Activités récentes (reçus) -->
+        <div class="card flex-grow-1">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-receipt me-2 text-info"></i>Derniers reçus</h5>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for rec in recent_receipts %}
+                    <li class="list-group-item px-3 py-2">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="fw-semibold small">
+                                    {{ rec.payment.student.name }} {{ rec.payment.student.first_name }}
+                                </div>
+                                <small class="text-muted">
+                                    {{ rec.payment.fee_type.name }} —
+                                    <a href="{% url 'receipt_view' rec.receipt_number %}" target="_blank">
+                                        {{ rec.receipt_number }}
+                                    </a>
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <div class="text-success fw-semibold small">{{ rec.amount|floatformat:0 }} F</div>
+                                <small class="text-muted">{{ rec.issue_date|date:"d/m" }}</small>
+                            </div>
+                        </div>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-center text-muted py-4">
+                        <i class="fas fa-receipt fa-2x mb-2 d-block"></i>
+                        Aucun reçu émis
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Classes -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0"><i class="fas fa-chalkboard me-2 text-primary"></i>Aperçu des Classes</h5>
+        <a href="{% url 'classes_list' %}" class="btn btn-sm btn-outline-primary">Gérer les Classes</a>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            {% for cls in classes %}
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="class-card p-3 border rounded">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="mb-1 fw-bold">{{ cls.name }}</h6>
+                            <small class="text-muted">{{ cls.teacher }}</small>
+                        </div>
+                        <span class="badge bg-primary">{{ cls.students_count }} élève{{ cls.students_count|pluralize }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <small class="text-muted">
+                            <i class="fas fa-book me-1"></i>{{ cls.subjects_count }} matière{{ cls.subjects_count|pluralize }}
+                        </small>
+                        <a href="{% url 'class_detail' cls.id %}" class="text-primary small">
+                            Voir détails <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center py-5 text-muted">
+                <i class="fas fa-chalkboard-user fa-4x mb-3 d-block"></i>
+                Aucune classe créée
+                <div class="mt-2">
+                    <a href="{% url 'classes_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Créer une Classe
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% if announcements %}
+<!-- Annonces -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0"><i class="fas fa-bullhorn me-2 text-warning"></i>Annonces</h5>
+    </div>
+    <div class="card-body p-0">
+        <ul class="list-group list-group-flush">
+            {% for a in announcements %}
+            <li class="list-group-item">
+                <div class="fw-semibold">{{ a.title }}</div>
+                <small class="text-muted">{{ a.description|truncatewords:20 }}</small>
+                <div class="text-muted" style="font-size:.75rem;">{{ a.create_at|date:"d/m/Y H:i" }}</div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}
+
 <style>
-.activity-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 0.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 1rem;
-}
-
-.activity-item {
-    padding-bottom: 1rem;
-    border-bottom: 1px solid var(--gray-100);
-}
-
-.activity-item:last-child {
-    padding-bottom: 0;
-    border-bottom: none;
-}
-
-.class-card {
-    transition: all 0.3s ease;
-    background: white;
-}
-
-.class-card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    transform: translateY(-2px);
-}
+.stat-change.neutral { color: #6b7280; }
+.class-card { transition: all .2s ease; background: white; }
+.class-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.1); transform: translateY(-2px); }
 </style>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'vendor/chart.umd.min.js' %}"></script>
 <script>
-// Revenue Chart
+const labels = {{ chart_labels|safe }};
+const amounts = {{ chart_amounts|safe }};
+
 const ctx = document.getElementById('revenueChart');
 if (ctx) {
     new Chart(ctx, {
-        type: 'line',
+        type: 'bar',
         data: {
-            labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun'],
+            labels: labels,
             datasets: [{
-                label: 'Revenus (FCFA)',
-                data: [1200000, 1900000, 1500000, 2100000, 1800000, 2400000],
+                label: 'Encaissements (FCFA)',
+                data: amounts,
+                backgroundColor: 'rgba(79, 70, 229, 0.7)',
                 borderColor: '#4F46E5',
-                backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                tension: 0.4,
-                fill: true
+                borderWidth: 1,
+                borderRadius: 4,
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
+            plugins: { legend: { display: false } },
             scales: {
                 y: {
                     beginAtZero: true,
                     ticks: {
-                        callback: function(value) {
-                            return value / 1000 + 'K';
-                        }
+                        callback: v => v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(0)+'K' : v
                     }
                 }
             }
