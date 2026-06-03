@@ -1,168 +1,525 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Paramètres de l'École - Gestion d'École{% endblock %}
+{% block title %}Paramètres{% endblock %}
 
 {% block content %}
-<div class="settings-page">
-    <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="h2 mb-1">Paramètres de l'École</h1>
-            <p class="text-muted mb-0">Configurez les informations de votre établissement</p>
-        </div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-1">Paramètres</h1>
+        <p class="text-muted mb-0">Configuration de l'établissement et des frais scolaires</p>
     </div>
+</div>
 
-    <div class="row">
-        <div class="col-lg-10 mx-auto">
-            <form method="POST" enctype="multipart/form-data">
-                {% csrf_token %}
+<!-- Onglets -->
+<ul class="nav nav-tabs mb-4" id="settingsTabs">
+    <li class="nav-item">
+        <a class="nav-link {% if active_tab == 'ecole' %}active{% endif %}"
+           href="?tab=ecole">
+            <i class="fas fa-school me-1"></i>École
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if active_tab == 'annees' %}active{% endif %}"
+           href="?tab=annees">
+            <i class="fas fa-calendar-alt me-1"></i>Années scolaires
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if active_tab == 'types' %}active{% endif %}"
+           href="?tab=types">
+            <i class="fas fa-tags me-1"></i>Types de frais
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if active_tab == 'frais' %}active{% endif %}"
+           href="?tab=frais">
+            <i class="fas fa-money-bill-wave me-1"></i>Frais par classe
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if active_tab == 'modes' %}active{% endif %}"
+           href="?tab=modes">
+            <i class="fas fa-credit-card me-1"></i>Modes de paiement
+        </a>
+    </li>
+</ul>
 
-                <!-- Informations de base -->
-                <div class="card mb-4">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="fas fa-school me-2"></i>Informations de Base</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-12">
-                                <label class="form-label fw-bold">Nom de l'École <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="name"
-                                       value="{{ school_settings.name }}" required>
-                            </div>
-
-                            <div class="col-md-12">
-                                <label class="form-label fw-bold">Adresse <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="address"
-                                       value="{{ school_settings.address }}" required>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Téléphone <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="phone"
-                                       value="{{ school_settings.phone }}" required>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Email</label>
-                                <input type="email" class="form-control" name="email"
-                                       value="{{ school_settings.email|default:'' }}"
-                                       placeholder="contact@ecole.bf">
-                            </div>
-
-                            <div class="col-md-12">
-                                <label class="form-label fw-bold">Site Web</label>
-                                <input type="url" class="form-control" name="website"
-                                       value="{{ school_settings.website|default:'' }}"
-                                       placeholder="https://www.ecole.bf">
-                            </div>
-                        </div>
-                    </div>
+<!-- ===== ONGLET ÉCOLE ===== -->
+{% if active_tab == 'ecole' %}
+<div class="row">
+    <div class="col-lg-9 mx-auto">
+        <form method="POST" enctype="multipart/form-data" action="?tab=ecole">
+            {% csrf_token %}
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-school me-2"></i>Informations de Base</h5>
                 </div>
-
-                <!-- Logo et Branding -->
-                <div class="card mb-4">
-                    <div class="card-header bg-success text-white">
-                        <h5 class="mb-0"><i class="fas fa-image me-2"></i>Logo et Branding</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Logo de l'École</label>
-                                {% if school_settings.logo %}
-                                <div class="mb-3">
-                                    <img src="{{ school_settings.logo.url }}"
-                                         alt="Logo actuel"
-                                         class="img-thumbnail"
-                                         style="max-width: 200px; max-height: 200px;">
-                                    <p class="text-muted small mt-2">Logo actuel</p>
-                                </div>
-                                {% endif %}
-                                <input type="file" class="form-control" name="logo" accept="image/*">
-                                <small class="text-muted">Formats acceptés: JPG, PNG. Taille recommandée: 200x200 pixels</small>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Devise de l'École</label>
-                                <textarea class="form-control" name="motto" rows="3"
-                                          placeholder="Ex: Excellence et Discipline">{{ school_settings.motto|default:'' }}</textarea>
-                                <small class="text-muted">Slogan ou devise de votre établissement</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Direction -->
-                <div class="card mb-4">
-                    <div class="card-header bg-info text-white">
-                        <h5 class="mb-0"><i class="fas fa-user-tie me-2"></i>Direction</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-12">
-                                <label class="form-label fw-bold">Nom du Directeur</label>
-                                <input type="text" class="form-control" name="director_name"
-                                       value="{{ school_settings.director_name|default:'' }}"
-                                       placeholder="M. Jean OUEDRAOGO">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Boutons d'action -->
-                <div class="d-flex gap-2 justify-content-end mb-4">
-                    <a href="{% url 'dashboard' %}" class="btn btn-secondary">
-                        <i class="fas fa-times me-2"></i>Annuler
-                    </a>
-                    <button type="submit" class="btn btn-primary btn-lg">
-                        <i class="fas fa-save me-2"></i>Enregistrer les Paramètres
-                    </button>
-                </div>
-            </form>
-
-            <!-- Informations complémentaires -->
-            <div class="card border-info">
                 <div class="card-body">
-                    <h6 class="card-title">
-                        <i class="fas fa-info-circle text-info me-2"></i>Informations Importantes
-                    </h6>
-                    <ul class="mb-0 small text-muted">
-                        <li>Ces informations seront affichées sur tous les bulletins de notes</li>
-                        <li>Le logo apparaîtra en haut à gauche des bulletins</li>
-                        <li>Assurez-vous que toutes les informations sont correctes avant impression</li>
-                        <li>Les modifications sont appliquées immédiatement</li>
-                    </ul>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Nom de l'École <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="name" value="{{ school_settings.name }}" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Adresse <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="address" value="{{ school_settings.address }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Téléphone <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="phone" value="{{ school_settings.phone }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Email</label>
+                            <input type="email" class="form-control" name="email" value="{{ school_settings.email|default:'' }}" placeholder="contact@ecole.bf">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Site Web</label>
+                            <input type="url" class="form-control" name="website" value="{{ school_settings.website|default:'' }}" placeholder="https://www.ecole.bf">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Nom du Directeur</label>
+                            <input type="text" class="form-control" name="director_name" value="{{ school_settings.director_name|default:'' }}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Devise de l'École</label>
+                            <textarea class="form-control" name="motto" rows="2" placeholder="Excellence et Discipline">{{ school_settings.motto|default:'' }}</textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Logo</label>
+                            {% if school_settings.logo %}
+                            <div class="mb-2">
+                                <img src="{{ school_settings.logo.url }}" alt="Logo" class="img-thumbnail" style="max-height:80px;">
+                            </div>
+                            {% endif %}
+                            <input type="file" class="form-control" name="logo" accept="image/*">
+                        </div>
+                    </div>
                 </div>
             </div>
+            <div class="d-flex gap-2 justify-content-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>Enregistrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<!-- ===== ONGLET ANNÉES SCOLAIRES ===== -->
+{% if active_tab == 'annees' %}
+<div class="d-flex justify-content-end mb-3">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreateYear">
+        <i class="fas fa-plus me-2"></i>Nouvelle année
+    </button>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Année</th>
+                    <th>Début</th>
+                    <th>Fin</th>
+                    <th>Statut</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for year in academic_years %}
+                <tr>
+                    <td class="fw-semibold">{{ year.name }}</td>
+                    <td>{{ year.start_date|date:"d/m/Y" }}</td>
+                    <td>{{ year.end_date|date:"d/m/Y" }}</td>
+                    <td>
+                        {% if year.is_active %}
+                        <span class="badge bg-success">Active</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary"
+                            data-bs-toggle="modal" data-bs-target="#modalEditYear{{ year.pk }}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <form method="POST" action="{% url 'academic_year_delete' year.pk %}" class="d-inline"
+                              onsubmit="return confirm('Supprimer {{ year.name }} ?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+
+                <!-- Modal Edit Year -->
+                <div class="modal fade" id="modalEditYear{{ year.pk }}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Modifier — {{ year.name }}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form method="POST" action="{% url 'academic_year_edit' year.pk %}">
+                                {% csrf_token %}
+                                <div class="modal-body">
+                                    {% include 'settings/_year_fields.html' with obj=year %}
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center py-5 text-muted">
+                        <i class="fas fa-calendar-alt fa-3x mb-3 d-block"></i>
+                        Aucune année scolaire créée
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Create Year -->
+<div class="modal fade" id="modalCreateYear" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>Nouvelle année scolaire</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'academic_year_create' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    {% include 'settings/_year_fields.html' %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Créer</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
-{% endblock %}
+{% endif %}
 
-{% block extra_js %}
-<script>
-// Prévisualisation du logo avant upload
-document.querySelector('input[name="logo"]')?.addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const preview = document.createElement('div');
-            preview.className = 'mt-3';
-            preview.innerHTML = `
-                <p class="text-muted small mb-2">Aperçu du nouveau logo:</p>
-                <img src="${e.target.result}" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">
-            `;
+<!-- ===== ONGLET TYPES DE FRAIS ===== -->
+{% if active_tab == 'types' %}
+<div class="d-flex justify-content-end mb-3">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreateFeeType">
+        <i class="fas fa-plus me-2"></i>Nouveau type
+    </button>
+</div>
 
-            // Supprimer l'ancien aperçu s'il existe
-            const oldPreview = document.querySelector('.logo-preview');
-            if (oldPreview) oldPreview.remove();
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Nom</th>
+                    <th>Catégorie</th>
+                    <th>Obligatoire</th>
+                    <th>Statut</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ft in fee_types %}
+                <tr>
+                    <td class="fw-semibold">{{ ft.name }}</td>
+                    <td><span class="badge bg-info text-dark">{{ ft.get_category_display }}</span></td>
+                    <td>{% if ft.is_mandatory %}<i class="fas fa-check text-success"></i>{% else %}<i class="fas fa-minus text-muted"></i>{% endif %}</td>
+                    <td>{% if ft.is_active %}<span class="badge bg-success">Actif</span>{% else %}<span class="badge bg-secondary">Inactif</span>{% endif %}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary"
+                            data-bs-toggle="modal" data-bs-target="#modalEditFeeType{{ ft.pk }}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <form method="POST" action="{% url 'fee_type_delete' ft.pk %}" class="d-inline"
+                              onsubmit="return confirm('Supprimer {{ ft.name }} ?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
 
-            preview.classList.add('logo-preview');
-            e.target.parentElement.appendChild(preview);
-        };
-        reader.readAsDataURL(file);
-    }
-});
-</script>
+                <!-- Modal Edit FeeType -->
+                <div class="modal fade" id="modalEditFeeType{{ ft.pk }}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Modifier — {{ ft.name }}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form method="POST" action="{% url 'fee_type_edit' ft.pk %}">
+                                {% csrf_token %}
+                                <div class="modal-body">
+                                    {% include 'settings/_fee_type_fields.html' with obj=ft %}
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center py-5 text-muted">
+                        <i class="fas fa-tags fa-3x mb-3 d-block"></i>
+                        Aucun type de frais configuré
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Create FeeType -->
+<div class="modal fade" id="modalCreateFeeType" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>Nouveau type de frais</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'fee_type_create' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    {% include 'settings/_fee_type_fields.html' %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Créer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ===== ONGLET FRAIS PAR CLASSE ===== -->
+{% if active_tab == 'frais' %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <form method="GET" class="d-flex gap-2 align-items-center">
+        <input type="hidden" name="tab" value="frais">
+        <select name="year" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">-- Toutes les années --</option>
+            {% for y in academic_years %}
+            <option value="{{ y.pk }}" {% if filter_year and filter_year.pk == y.pk %}selected{% endif %}>
+                {{ y.name }}{% if y.is_active %} ★{% endif %}
+            </option>
+            {% endfor %}
+        </select>
+    </form>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreateFS">
+        <i class="fas fa-plus me-2"></i>Nouveau frais
+    </button>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Classe</th>
+                    <th>Type de frais</th>
+                    <th>Année</th>
+                    <th class="text-end">Montant total</th>
+                    <th>Fréquence</th>
+                    <th>Échéancier</th>
+                    <th>Statut</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fs in fee_structures %}
+                <tr>
+                    <td class="fw-semibold">{{ fs.class_level.name }}</td>
+                    <td>{{ fs.fee_type.name }}</td>
+                    <td><span class="badge bg-light text-dark border">{{ fs.academic_year.name }}</span></td>
+                    <td class="text-end fw-semibold">{{ fs.amount|floatformat:0 }} FCFA</td>
+                    <td><small>{{ fs.get_payment_frequency_display }}</small></td>
+                    <td>
+                        {% if fs.schedules.all %}
+                        <span class="badge bg-success">{{ fs.schedules.count }} période{{ fs.schedules.count|pluralize }}</span>
+                        {% else %}
+                        <span class="badge bg-light text-muted border">—</span>
+                        {% endif %}
+                    </td>
+                    <td>{% if fs.is_active %}<span class="badge bg-success">Actif</span>{% else %}<span class="badge bg-secondary">Inactif</span>{% endif %}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary"
+                            data-bs-toggle="modal" data-bs-target="#modalEditFS{{ fs.pk }}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <form method="POST" action="{% url 'fee_structure_delete' fs.pk %}" class="d-inline"
+                              onsubmit="return confirm('Supprimer cette structure ?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+
+                <!-- Modal Edit FeeStructure -->
+                <div class="modal fade" id="modalEditFS{{ fs.pk }}" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Modifier — {{ fs.class_level.name }} / {{ fs.fee_type.name }}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form method="POST" action="{% url 'fee_structure_edit' fs.pk %}">
+                                {% csrf_token %}
+                                <div class="modal-body">
+                                    {% include 'settings/_fee_structure_fields.html' with obj=fs %}
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-5 text-muted">
+                        <i class="fas fa-money-bill-wave fa-3x mb-3 d-block"></i>
+                        Aucun frais configuré{% if filter_year %} pour {{ filter_year.name }}{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Create FeeStructure -->
+<div class="modal fade" id="modalCreateFS" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>Nouveau frais par classe</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'fee_structure_create' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    {% include 'settings/_fee_structure_fields.html' %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Créer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ===== ONGLET MODES DE PAIEMENT ===== -->
+{% if active_tab == 'modes' %}
+<div class="d-flex justify-content-end mb-3">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreatePM">
+        <i class="fas fa-plus me-2"></i>Nouveau mode
+    </button>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Nom</th>
+                    <th>Type</th>
+                    <th>Statut</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pm in payment_methods %}
+                <tr>
+                    <td class="fw-semibold">{{ pm.name }}</td>
+                    <td>{{ pm.get_method_type_display }}</td>
+                    <td>{% if pm.is_active %}<span class="badge bg-success">Actif</span>{% else %}<span class="badge bg-secondary">Inactif</span>{% endif %}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary"
+                            data-bs-toggle="modal" data-bs-target="#modalEditPM{{ pm.pk }}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <form method="POST" action="{% url 'payment_method_delete' pm.pk %}" class="d-inline"
+                              onsubmit="return confirm('Supprimer {{ pm.name }} ?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+
+                <!-- Modal Edit PaymentMethod -->
+                <div class="modal fade" id="modalEditPM{{ pm.pk }}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Modifier — {{ pm.name }}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form method="POST" action="{% url 'payment_method_edit' pm.pk %}">
+                                {% csrf_token %}
+                                <div class="modal-body">
+                                    {% include 'settings/_payment_method_fields.html' with obj=pm %}
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center py-5 text-muted">
+                        <i class="fas fa-credit-card fa-3x mb-3 d-block"></i>
+                        Aucun mode de paiement configuré
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Create PaymentMethod -->
+<div class="modal fade" id="modalCreatePM" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>Nouveau mode de paiement</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'payment_method_create' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    {% include 'settings/_payment_method_fields.html' %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Créer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}

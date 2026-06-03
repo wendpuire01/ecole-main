@@ -1,0 +1,24 @@
+<div class="mb-3">
+    <label class="form-label fw-semibold">Nom <span class="text-danger">*</span></label>
+    <input type="text" class="form-control" name="name" value="{{ obj.name|default:'' }}"
+           placeholder="Ex: 2025-2026" required>
+</div>
+<div class="row g-3">
+    <div class="col-6">
+        <label class="form-label fw-semibold">Date de début <span class="text-danger">*</span></label>
+        <input type="date" class="form-control" name="start_date"
+               value="{{ obj.start_date|date:'Y-m-d'|default:'' }}" required>
+    </div>
+    <div class="col-6">
+        <label class="form-label fw-semibold">Date de fin <span class="text-danger">*</span></label>
+        <input type="date" class="form-control" name="end_date"
+               value="{{ obj.end_date|date:'Y-m-d'|default:'' }}" required>
+    </div>
+</div>
+<div class="form-check mt-3">
+    <input class="form-check-input" type="checkbox" name="is_active" id="is_active_year_{{ obj.pk|default:'new' }}"
+           {% if obj.is_active %}checked{% endif %}>
+    <label class="form-check-label" for="is_active_year_{{ obj.pk|default:'new' }}">
+        Année active <small class="text-muted">(désactive automatiquement la précédente)</small>
+    </label>
+</div>

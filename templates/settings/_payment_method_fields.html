@@ -1,0 +1,22 @@
+<div class="mb-3">
+    <label class="form-label fw-semibold">Nom <span class="text-danger">*</span></label>
+    <input type="text" class="form-control" name="name" value="{{ obj.name|default:'' }}"
+           placeholder="Ex: Espèces" required>
+</div>
+<div class="mb-3">
+    <label class="form-label fw-semibold">Type <span class="text-danger">*</span></label>
+    <select class="form-select" name="method_type" required>
+        <option value="cash"     {% if obj.method_type == 'cash' %}selected{% endif %}>Espèces</option>
+        <option value="bank"     {% if obj.method_type == 'bank' %}selected{% endif %}>Virement bancaire</option>
+        <option value="mobile"   {% if obj.method_type == 'mobile' %}selected{% endif %}>Mobile Money</option>
+        <option value="check"    {% if obj.method_type == 'check' %}selected{% endif %}>Chèque</option>
+        <option value="other"    {% if obj.method_type == 'other' %}selected{% endif %}>Autre</option>
+    </select>
+</div>
+{% if obj.pk %}
+<div class="form-check">
+    <input class="form-check-input" type="checkbox" name="is_active"
+           id="active_pm_{{ obj.pk }}" {% if obj.is_active %}checked{% endif %}>
+    <label class="form-check-label" for="active_pm_{{ obj.pk }}">Actif</label>
+</div>
+{% endif %}

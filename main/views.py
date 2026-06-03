@@ -170,21 +170,22 @@ def profile(request):
 
 @login_required
 def settings_view(request):
-    """Paramètres de l'application"""
     from school_portal.models import SchoolSettings
+    from school_finance.models import (
+        AcademicYear, FeeType, FeeStructure, PaymentMethod, PaymentSchedule
+    )
+    from school_portal.models import Class
 
-    # Récupérer ou créer les paramètres
-    school_settings, created = SchoolSettings.objects.get_or_create(
+    school_settings, _ = SchoolSettings.objects.get_or_create(
         defaults={
             'name': 'ÉCOLE SECONDAIRE',
             'address': 'Ouagadougou, Burkina Faso',
-            'phone': '+226 XX XX XX XX'
+            'phone': '+226 XX XX XX XX',
         }
     )
 
     if request.method == 'POST':
         try:
-            # Mettre à jour les paramètres
             school_settings.name = request.POST.get('name')
             school_settings.address = request.POST.get('address')
             school_settings.phone = request.POST.get('phone')
@@ -192,19 +193,46 @@ def settings_view(request):
             school_settings.website = request.POST.get('website', '')
             school_settings.director_name = request.POST.get('director_name', '')
             school_settings.motto = request.POST.get('motto', '')
-
-            # Gérer l'upload du logo
             if 'logo' in request.FILES:
                 school_settings.logo = request.FILES['logo']
-
             school_settings.save()
             messages.success(request, 'Paramètres mis à jour avec succès')
-            return redirect('settings')
+            return redirect(request.get_full_path())
         except Exception as e:
             messages.error(request, f'Erreur: {str(e)}')
 
+    # Filtre année pour l'onglet frais par classe
+    selected_year_id = request.GET.get('year', '')
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    filter_year = None
+    if selected_year_id:
+        filter_year = AcademicYear.objects.filter(pk=selected_year_id).first()
+    elif active_year:
+        filter_year = active_year
+
+    fee_structures = FeeStructure.objects.select_related(
+        'academic_year', 'class_level', 'fee_type'
+    ).prefetch_related('schedules').order_by('class_level__name', 'fee_type__category')
+    if filter_year:
+        fee_structures = fee_structures.filter(academic_year=filter_year)
+
     context = {
         'school_settings': school_settings,
+        'active_tab': request.GET.get('tab', 'ecole'),
+        # Finance data
+        'academic_years': AcademicYear.objects.all(),
+        'fee_types': FeeType.objects.all().order_by('category', 'name'),
+        'payment_methods': PaymentMethod.objects.all(),
+        'fee_structures': fee_structures,
+        'classes': Class.objects.all().order_by('name'),
+        'fee_type_categories': FeeType.CATEGORY_CHOICES,
+        'filter_year': filter_year,
+        'selected_year_id': selected_year_id,
+        'period_choices': [
+            ('trimestre1', 'Trimestre 1'), ('trimestre2', 'Trimestre 2'),
+            ('trimestre3', 'Trimestre 3'), ('semestre1', 'Semestre 1'),
+            ('semestre2', 'Semestre 2'),
+        ],
     }
     return render(request, 'settings.html', context)
 

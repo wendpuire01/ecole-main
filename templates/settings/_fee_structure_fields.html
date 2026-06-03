@@ -1,0 +1,97 @@
+<div class="row g-3 mb-3">
+    <div class="col-md-6">
+        <label class="form-label fw-semibold">Classe <span class="text-danger">*</span></label>
+        <select class="form-select" name="class_level" required>
+            <option value="">-- Sélectionner --</option>
+            {% for cls in classes %}
+            <option value="{{ cls.pk }}"
+                {% if obj.class_level_id == cls.pk %}selected{% endif %}>
+                {{ cls.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-6">
+        <label class="form-label fw-semibold">Année scolaire <span class="text-danger">*</span></label>
+        <select class="form-select" name="academic_year" required>
+            <option value="">-- Sélectionner --</option>
+            {% for y in academic_years %}
+            <option value="{{ y.pk }}"
+                {% if obj.academic_year_id == y.pk or filter_year.pk == y.pk %}selected{% endif %}>
+                {{ y.name }}{% if y.is_active %} ★{% endif %}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-6">
+        <label class="form-label fw-semibold">Type de frais <span class="text-danger">*</span></label>
+        <select class="form-select" name="fee_type" required>
+            <option value="">-- Sélectionner --</option>
+            {% for ft in fee_types %}
+            {% if ft.is_active %}
+            <option value="{{ ft.pk }}"
+                {% if obj.fee_type_id == ft.pk %}selected{% endif %}>
+                {{ ft.name }} ({{ ft.get_category_display }})
+            </option>
+            {% endif %}
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label fw-semibold">Montant total (FCFA) <span class="text-danger">*</span></label>
+        <input type="number" class="form-control" name="amount"
+               value="{{ obj.amount|default:'' }}" min="0" required>
+    </div>
+    <div class="col-md-6">
+        <label class="form-label fw-semibold">Fréquence de paiement</label>
+        <select class="form-select" name="payment_frequency">
+            <option value="unique"      {% if obj.payment_frequency == 'unique' %}selected{% endif %}>Paiement unique</option>
+            <option value="trimestriel" {% if obj.payment_frequency == 'trimestriel' or not obj.pk %}selected{% endif %}>Trimestriel</option>
+            <option value="mensuel"     {% if obj.payment_frequency == 'mensuel' %}selected{% endif %}>Mensuel</option>
+            <option value="annuel"      {% if obj.payment_frequency == 'annuel' %}selected{% endif %}>Annuel</option>
+        </select>
+    </div>
+    {% if obj.pk %}
+    <div class="col-md-2 d-flex align-items-end">
+        <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" name="is_active"
+                   id="active_fs_{{ obj.pk }}" {% if obj.is_active %}checked{% endif %}>
+            <label class="form-check-label" for="active_fs_{{ obj.pk }}">Actif</label>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Échéancier -->
+<div class="border rounded p-3 bg-light">
+    <h6 class="fw-semibold mb-3">
+        <i class="fas fa-calendar-check me-2 text-primary"></i>
+        Échéancier <small class="text-muted fw-normal">(laisser vide si non applicable)</small>
+    </h6>
+    <div class="row g-2">
+        {% for period_val, period_label in period_choices %}
+        {% with sched=obj.schedules.all %}
+        <div class="col-12">
+            <div class="row g-2 align-items-center">
+                <div class="col-3">
+                    <label class="form-label mb-0 small fw-semibold">{{ period_label }}</label>
+                </div>
+                <div class="col-4">
+                    <div class="input-group input-group-sm">
+                        <input type="number" class="form-control" name="schedule_amount_{{ period_val }}"
+                               placeholder="Montant FCFA" min="0"
+                               value="{% for s in sched %}{% if s.period == period_val %}{{ s.expected_amount }}{% endif %}{% endfor %}">
+                        <span class="input-group-text">FCFA</span>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <input type="date" class="form-control form-control-sm"
+                           name="schedule_date_{{ period_val }}"
+                           value="{% for s in sched %}{% if s.period == period_val %}{{ s.due_date|date:'Y-m-d' }}{% endif %}{% endfor %}">
+                </div>
+            </div>
+        </div>
+        {% endwith %}
+        {% endfor %}
+    </div>
+</div>

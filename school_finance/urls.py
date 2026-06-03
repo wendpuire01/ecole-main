@@ -24,4 +24,21 @@ urlpatterns = [
     # Reports & Receipt
     path('reports/', views.finance_reports, name='finance_reports'),
     path('recu/<str:receipt_number>/', views.receipt_view, name='receipt_view'),
+
+    # Settings CRUD
+    path('settings/annee/create/',               views.academic_year_create,    name='academic_year_create'),
+    path('settings/annee/<int:pk>/edit/',         views.academic_year_edit,      name='academic_year_edit'),
+    path('settings/annee/<int:pk>/delete/',       views.academic_year_delete,    name='academic_year_delete'),
+
+    path('settings/type-frais/create/',           views.fee_type_create,         name='fee_type_create'),
+    path('settings/type-frais/<int:pk>/edit/',    views.fee_type_edit,           name='fee_type_edit'),
+    path('settings/type-frais/<int:pk>/delete/',  views.fee_type_delete,         name='fee_type_delete'),
+
+    path('settings/mode-paiement/create/',               views.payment_method_create,    name='payment_method_create'),
+    path('settings/mode-paiement/<int:pk>/edit/',         views.payment_method_edit,      name='payment_method_edit'),
+    path('settings/mode-paiement/<int:pk>/delete/',       views.payment_method_delete,    name='payment_method_delete'),
+
+    path('settings/frais/create/',               views.fee_structure_create,    name='fee_structure_create'),
+    path('settings/frais/<int:pk>/edit/',         views.fee_structure_edit,      name='fee_structure_edit'),
+    path('settings/frais/<int:pk>/delete/',       views.fee_structure_delete,    name='fee_structure_delete'),
 ]

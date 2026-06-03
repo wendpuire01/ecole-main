@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
@@ -610,3 +611,233 @@ def _update_student_account(student, academic_year):
         academic_year=academic_year,
     )
     account.update_totals()
+
+
+# ===================================
+# SETTINGS / CONFIGURATION FINANCE
+# ===================================
+
+@login_required
+def finance_settings(request):
+    """Page paramètres — onglet finance (redirige vers settings principal)."""
+    return redirect(f"{reverse('settings')}?tab=annees")
+
+
+def _settings_redirect(tab):
+    from django.urls import reverse
+    return redirect(f"{reverse('settings')}?tab={tab}")
+
+
+# --- Années scolaires ---
+
+@login_required
+def academic_year_create(request):
+    if request.method == 'POST':
+        try:
+            name = request.POST['name']
+            start = request.POST['start_date']
+            end = request.POST['end_date']
+            is_active = request.POST.get('is_active') == 'on'
+            if is_active:
+                AcademicYear.objects.filter(is_active=True).update(is_active=False)
+            AcademicYear.objects.create(name=name, start_date=start, end_date=end, is_active=is_active)
+            messages.success(request, f'Année "{name}" créée.')
+        except Exception as e:
+            messages.error(request, f'Erreur : {e}')
+    return redirect(reverse('settings') + '?tab=annees')
+
+
+@login_required
+def academic_year_edit(request, pk):
+    year = get_object_or_404(AcademicYear, pk=pk)
+    if request.method == 'POST':
+        try:
+            year.name = request.POST['name']
+            year.start_date = request.POST['start_date']
+            year.end_date = request.POST['end_date']
+            is_active = request.POST.get('is_active') == 'on'
+            if is_active and not year.is_active:
+                AcademicYear.objects.filter(is_active=True).update(is_active=False)
+            year.is_active = is_active
+            year.save()
+            messages.success(request, 'Année modifiée.')
+        except Exception as e:
+            messages.error(request, f'Erreur : {e}')
+    return redirect(reverse('settings') + '?tab=annees')
+
+
+@login_required
+def academic_year_delete(request, pk):
+    year = get_object_or_404(AcademicYear, pk=pk)
+    if request.method == 'POST':
+        try:
+            year.delete()
+            messages.success(request, 'Année supprimée.')
+        except Exception as e:
+            messages.error(request, f'Impossible de supprimer : {e}')
+    return redirect(reverse('settings') + '?tab=annees')
+
+
+# --- Types de frais ---
+
+@login_required
+def fee_type_create(request):
+    if request.method == 'POST':
+        try:
+            FeeType.objects.create(
+                name=request.POST['name'],
+                category=request.POST['category'],
+                description=request.POST.get('description', ''),
+                is_mandatory=request.POST.get('is_mandatory') == 'on',
+                is_active=True,
+            )
+            messages.success(request, 'Type de frais créé.')
+        except Exception as e:
+            messages.error(request, f'Erreur : {e}')
+    return redirect(reverse('settings') + '?tab=types')
+
+
+@login_required
+def fee_type_edit(request, pk):
+    ft = get_object_or_404(FeeType, pk=pk)
+    if request.method == 'POST':
+        try:
+            ft.name = request.POST['name']
+            ft.category = request.POST['category']
+            ft.description = request.POST.get('description', '')
+            ft.is_mandatory = request.POST.get('is_mandatory') == 'on'
+            ft.is_active = request.POST.get('is_active') == 'on'
+            ft.save()
+            messages.success(request, 'Type de frais modifié.')
+        except Exception as e:
+            messages.error(request, f'Erreur : {e}')
+    return redirect(reverse('settings') + '?tab=types')
+
+
+@login_required
+def fee_type_delete(request, pk):
+    ft = get_object_or_404(FeeType, pk=pk)
+    if request.method == 'POST':
+        try:
+            ft.delete()
+            messages.success(request, 'Type de frais supprimé.')
+        except Exception as e:
+            messages.error(request, f'Impossible de supprimer : {e}')
+    return redirect(reverse('settings') + '?tab=types')
+
+
+# --- Modes de paiement ---
+
+@login_required
+def payment_method_create(request):
+    if request.method == 'POST':
+        try:
+            from .models import PaymentMethod
+            PaymentMethod.objects.create(
+                name=request.POST['name'],
+                method_type=request.POST.get('method_type', 'cash'),
+                is_active=True,
+            )
+            messages.success(request, 'Mode de paiement créé.')
+        except Exception as e:
+            messages.error(request, f'Erreur : {e}')
+    return redirect(reverse('settings') + '?tab=modes')
+
+
+@login_required
+def payment_method_edit(request, pk):
+    from .models import PaymentMethod
+    pm = get_object_or_404(PaymentMethod, pk=pk)
+    if request.method == 'POST':
+        try:
+            pm.name = request.POST['name']
+            pm.method_type = request.POST.get('method_type', 'cash')
+            pm.is_active = request.POST.get('is_active') == 'on'
+            pm.save()
+            messages.success(request, 'Mode de paiement modifié.')
+        except Exception as e:
+            messages.error(request, f'Erreur : {e}')
+    return redirect(reverse('settings') + '?tab=modes')
+
+
+@login_required
+def payment_method_delete(request, pk):
+    from .models import PaymentMethod
+    pm = get_object_or_404(PaymentMethod, pk=pk)
+    if request.method == 'POST':
+        try:
+            pm.delete()
+            messages.success(request, 'Mode supprimé.')
+        except Exception as e:
+            messages.error(request, f'Impossible de supprimer : {e}')
+    return redirect(reverse('settings') + '?tab=modes')
+
+
+# --- Frais par classe (FeeStructure + schedules) ---
+
+@login_required
+def fee_structure_create(request):
+    if request.method == 'POST':
+        try:
+            fs = FeeStructure.objects.create(
+                academic_year_id=request.POST['academic_year'],
+                class_level_id=request.POST['class_level'],
+                fee_type_id=request.POST['fee_type'],
+                amount=Decimal(request.POST['amount']),
+                payment_frequency=request.POST.get('payment_frequency', 'trimestriel'),
+                is_active=True,
+            )
+            _save_schedules(request, fs)
+            messages.success(request, 'Structure de frais créée.')
+        except Exception as e:
+            messages.error(request, f'Erreur : {e}')
+    return redirect(reverse('settings') + '?tab=frais')
+
+
+@login_required
+def fee_structure_edit(request, pk):
+    fs = get_object_or_404(FeeStructure, pk=pk)
+    if request.method == 'POST':
+        try:
+            fs.academic_year_id = request.POST['academic_year']
+            fs.class_level_id = request.POST['class_level']
+            fs.fee_type_id = request.POST['fee_type']
+            fs.amount = Decimal(request.POST['amount'])
+            fs.payment_frequency = request.POST.get('payment_frequency', 'trimestriel')
+            fs.is_active = request.POST.get('is_active') == 'on'
+            fs.save()
+            _save_schedules(request, fs)
+            messages.success(request, 'Structure de frais modifiée.')
+        except Exception as e:
+            messages.error(request, f'Erreur : {e}')
+    return redirect(reverse('settings') + '?tab=frais')
+
+
+@login_required
+def fee_structure_delete(request, pk):
+    fs = get_object_or_404(FeeStructure, pk=pk)
+    if request.method == 'POST':
+        try:
+            fs.delete()
+            messages.success(request, 'Structure supprimée.')
+        except Exception as e:
+            messages.error(request, f'Impossible de supprimer : {e}')
+    return redirect(reverse('settings') + '?tab=frais')
+
+
+def _save_schedules(request, fs):
+    """Sauvegarde les lignes d'échéancier soumises avec le formulaire."""
+    periods = ['trimestre1', 'trimestre2', 'trimestre3', 'semestre1', 'semestre2']
+    for period in periods:
+        amount_key = f'schedule_amount_{period}'
+        date_key = f'schedule_date_{period}'
+        amount_val = request.POST.get(amount_key, '').strip()
+        date_val = request.POST.get(date_key, '').strip()
+        if amount_val and date_val:
+            PaymentSchedule.objects.update_or_create(
+                fee_structure=fs,
+                period=period,
+                defaults={'expected_amount': Decimal(amount_val), 'due_date': date_val},
+            )
+        else:
+            PaymentSchedule.objects.filter(fee_structure=fs, period=period).delete()
