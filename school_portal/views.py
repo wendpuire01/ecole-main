@@ -1130,6 +1130,15 @@ def report_card(request, student_id):
         if period_averages:
             annual_average = round(sum(period_averages) / len(period_averages), 2)
 
+    # Décision du conseil (uniquement au 3e trimestre / 2e semestre)
+    decision = None
+    if is_last_period and annual_average is not None:
+        if annual_average >= 10:
+            decision = "Passé(e) en classe supérieure"
+        elif annual_average <= 9.50:
+            decision = "Redoublant(e)"
+        # entre 9,50 et 10 : champ laissé vide pour décision du conseil
+
     context = {
         'student': {
             'full_name': f'{student.name} {student.first_name} {student.surname if student.surname else ""}',
@@ -1158,6 +1167,7 @@ def report_card(request, student_id):
         'previous_periods_general_averages': previous_periods_general_averages,  # Moyennes générales des trimestres précédents
         'annual_average': annual_average,
         'is_last_period': is_last_period,
+        'decision': decision,
     }
 
     return render(request, 'grades/report_card.html', context)
@@ -1389,6 +1399,14 @@ def bulk_report_cards(request):
             if period_averages:
                 student_annual_average = round(sum(period_averages) / len(period_averages), 2)
 
+        # Décision du conseil (uniquement au 3e trimestre / 2e semestre)
+        student_decision = None
+        if is_last_period and student_annual_average is not None:
+            if student_annual_average >= 10:
+                student_decision = "Passé(e) en classe supérieure"
+            elif student_annual_average <= 9.50:
+                student_decision = "Redoublant(e)"
+
         bulletins.append({
             'student': {
                 'full_name': f'{student.name} {student.first_name} {student.surname if student.surname else ""}',
@@ -1408,6 +1426,7 @@ def bulk_report_cards(request):
             'previous_periods': student_previous_periods_data,  # Données complètes des trimestres précédents
             'previous_periods_general_averages': previous_periods_general_averages,  # Moyennes générales des trimestres précédents
             'annual_average': student_annual_average,
+            'decision': student_decision,
         })
 
     context = {

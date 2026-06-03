@@ -518,6 +518,27 @@
         </div>
     </div>
 
+    <!-- Décision du Conseil (3e trimestre / 2e semestre uniquement) -->
+    {% if is_last_period %}
+    <div class="appreciation-section" style="margin-top: 8px; border: 2px solid #333; border-radius: 6px; padding: 10px 14px;">
+        <div class="appreciation-title" style="font-weight: bold; font-size: 13px; margin-bottom: 6px;">Décision du Conseil de Classe :</div>
+        <div style="font-size: 14px; font-weight: bold; min-height: 28px; display: flex; align-items: center; gap: 10px;">
+            {% if decision %}
+                <span style="padding: 4px 16px; border-radius: 4px;
+                    {% if decision == 'Passé(e) en classe supérieure' %}
+                        background: #e8f5e9; color: #2e7d32; border: 1px solid #4caf50;
+                    {% else %}
+                        background: #fff3e0; color: #e65100; border: 1px solid #ff9800;
+                    {% endif %}
+                ">{{ decision }}</span>
+            {% else %}
+                <span style="color: #555; font-style: italic; font-weight: normal;">En attente de décision du conseil</span>
+                <span style="flex: 1; border-bottom: 1px solid #555; display: inline-block;">&nbsp;</span>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Attendance -->
     <div class="attendance-section">
         <div class="attendance-item">
