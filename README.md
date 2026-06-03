@@ -1,34 +1,34 @@
-# 🏫 Système de Gestion d'École
+#  Système de Gestion d'École
 
 Application web complète de gestion d'établissement scolaire développée avec Django 5.0.6
 
-## 📋 Fonctionnalités
+##  Fonctionnalités
 
-### 🎓 Gestion Académique
+###  Gestion Académique
 - **Étudiants** : Création, modification, profils détaillés
 - **Enseignants** : Gestion du corps enseignant
 - **Classes** : Organisation des classes par niveau
 - **Matières** : Gestion des matières avec coefficients
 
-### 📊 Gestion des Notes
+###  Gestion des Notes
 - **Saisie des notes** : Interface intuitive avec modale
 - **Calcul automatique** : Moyennes avec coefficients
 - **Trimestres/Semestres** : Gestion des périodes scolaires
 - **Bulletins** : Génération et impression
 - **Classements** : Rangs automatiques par classe
 
-### 💰 Gestion Financière
+###  Gestion Financière
 - **Inscriptions** : Gestion des inscriptions et ré-inscriptions
 - **Paiements** : Suivi des versements et scolarité
 - **Factures** : Génération automatique des reçus
 - **Rapports** : États financiers
 
-### 📈 Tableaux de Bord
+###  Tableaux de Bord
 - **Dashboard général** : Vue d'ensemble
 - **Statistiques** : Effectifs, moyennes, taux de réussite
 - **Graphiques** : Visualisations Chart.js
 
-## 🚀 Installation Rapide
+##  Installation Rapide
 
 ### 1. Cloner le projet
 ```bash
@@ -68,7 +68,7 @@ python manage.py runserver
 - **Admin Django** : http://127.0.0.1:8000/admin/
 - **Dashboard** : http://127.0.0.1:8000/dashboard/
 
-## 📚 Documentation
+##  Documentation
 
 - **[QUICK_START.md](QUICK_START.md)** - Démarrage rapide
 - **[QUICK_START_NOTES.md](QUICK_START_NOTES.md)** - Guide système de notes
@@ -77,7 +77,7 @@ python manage.py runserver
 - **[DESIGN_GUIDE.md](DESIGN_GUIDE.md)** - Guide de design
 - **[URL_CONFIGURATION.md](URL_CONFIGURATION.md)** - Configuration URLs
 
-## 🛠️ Technologies
+##  Technologies
 
 - **Framework** : Django 5.0.6
 - **Base de données** : SQLite (développement)
@@ -86,7 +86,7 @@ python manage.py runserver
 - **PDF** : ReportLab, WeasyPrint
 - **Export** : openpyxl (Excel)
 
-## 📁 Structure du Projet
+##  Structure du Projet
 
 ```
 ecole-main/
@@ -99,7 +99,7 @@ ecole-main/
 └── venv/                   # Environnement virtuel
 ```
 
-## 🎯 URLs Principales
+##  URLs Principales
 
 | Fonctionnalité | URL |
 |---------------|-----|
@@ -113,7 +113,7 @@ ecole-main/
 | Finance | `/finance/` |
 | Admin | `/admin/` |
 
-## ⚙️ Configuration
+##  Configuration
 
 ### Base de données
 Par défaut : SQLite (`db.sqlite3`)
@@ -137,7 +137,7 @@ DATABASES = {
 python manage.py collectstatic
 ```
 
-## 🔑 Fonctionnalités Clés
+##  Fonctionnalités Clés
 
 ### Système de Notes
 - Types d'évaluations : Devoir, Composition, Interrogation, Examen, TP
@@ -151,7 +151,7 @@ python manage.py collectstatic
 Moyenne_Générale = Σ(Moyenne_Matière × Coefficient_Matière) / Σ(Coefficients)
 ```
 
-## 👥 Contribuer
+##  Contribuer
 
 1. Fork le projet
 2. Créer une branche (`git checkout -b feature/AmazingFeature`)
@@ -159,21 +159,16 @@ Moyenne_Générale = Σ(Moyenne_Matière × Coefficient_Matière) / Σ(Coefficie
 4. Push (`git push origin feature/AmazingFeature`)
 5. Ouvrir une Pull Request
 
-## 📝 License
+##  License
 
 Ce projet est sous licence MIT.
 
-## 👨‍💻 Auteur
+##  Auteur
 
 **Wendpuiré KABORE**
 - GitHub: [@wendpuire01](https://github.com/wendpuire01)
 
-## 🙏 Remerciements
 
-- Django Framework
-- Bootstrap Team
-- FontAwesome
-- Communauté Open Source
 
 ---
 
