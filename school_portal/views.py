@@ -1022,9 +1022,22 @@ def report_card(request, student_id):
     # Calculer le rang dans la classe
     rank = student.get_rank_in_class()
     class_size = 0
+    class_avg = None
+    class_min = None
+    class_max = None
     if student_class:
         class_students = student_class.students.all()
         class_size = class_students.count()
+        # Statistiques de la classe pour la période en cours
+        if current_period:
+            class_averages = [
+                a for a in (s.get_average(period=current_period) for s in class_students)
+                if a is not None
+            ]
+            if class_averages:
+                class_avg = round(sum(class_averages) / len(class_averages), 2)
+                class_min = round(min(class_averages), 2)
+                class_max = round(max(class_averages), 2)
 
     # Récupérer les paramètres de l'école
     from .models import SchoolSettings
@@ -1134,9 +1147,9 @@ def report_card(request, student_id):
     decision = None
     if is_last_period and annual_average is not None:
         if annual_average >= 10:
-            decision = "Passé(e) en classe supérieure"
+            decision = "Est admis(e) en classe supérieure"
         elif annual_average <= 9.50:
-            decision = "Redoublant(e)"
+            decision = "Redouble la classe"
         # entre 9,50 et 10 : champ laissé vide pour décision du conseil
 
     context = {
@@ -1168,6 +1181,9 @@ def report_card(request, student_id):
         'annual_average': annual_average,
         'is_last_period': is_last_period,
         'decision': decision,
+        'class_avg': class_avg,
+        'class_min': class_min,
+        'class_max': class_max,
     }
 
     return render(request, 'grades/report_card.html', context)
@@ -1403,9 +1419,9 @@ def bulk_report_cards(request):
         student_decision = None
         if is_last_period and student_annual_average is not None:
             if student_annual_average >= 10:
-                student_decision = "Passé(e) en classe supérieure"
+                student_decision = "Est admis(e) en classe supérieure"
             elif student_annual_average <= 9.50:
-                student_decision = "Redoublant(e)"
+                student_decision = "Redouble la classe"
 
         bulletins.append({
             'student': {
@@ -1429,6 +1445,12 @@ def bulk_report_cards(request):
             'decision': student_decision,
         })
 
+    # Statistiques de la classe (toutes périodes)
+    all_averages = [b['average'] for b in bulletins if b['average'] > 0]
+    bulk_class_avg = round(sum(all_averages) / len(all_averages), 2) if all_averages else None
+    bulk_class_min = round(min(all_averages), 2) if all_averages else None
+    bulk_class_max = round(max(all_averages), 2) if all_averages else None
+
     context = {
         'bulletins': bulletins,
         'class_obj': class_obj,
@@ -1441,6 +1463,9 @@ def bulk_report_cards(request):
         'class_size': students.count(),
         'current_date': datetime.now(),
         'is_last_period': current_period and current_period.name in ['trimestre3', 'semestre2'],
+        'class_avg': bulk_class_avg,
+        'class_min': bulk_class_min,
+        'class_max': bulk_class_max,
     }
 
     return render(request, 'grades/bulk_report_cards.html', context)
