@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Compte — {{ student.name }} {{ student.first_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-1">Compte Financier</h1>
+        <p class="text-muted mb-0">{{ student.name }} {{ student.first_name }} — {{ student.matricule }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <form method="GET" class="d-flex gap-2 align-items-center">
+            <select name="year" class="form-select form-select-sm">
+                {% for year in academic_years %}
+                <option value="{{ year.id }}" {% if selected_year and year.id == selected_year.id %}selected{% endif %}>
+                    {{ year.name }}{% if year.is_active %} ★{% endif %}
+                </option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm">Filtrer</button>
+        </form>
+        <a href="{% url 'payment_create' %}" class="btn btn-success btn-sm">
+            <i class="fas fa-plus me-1"></i>Paiement
+        </a>
+        <a href="{% url 'payments_list' %}" class="btn btn-outline-secondary btn-sm">Retour</a>
+    </div>
+</div>
+
+{% if classe %}
+<p class="mb-3"><i class="fas fa-graduation-cap me-1 text-primary"></i>Classe: <strong>{{ classe.name }}</strong></p>
+{% endif %}
+
+<!-- Statut par période (scolarité) -->
+{% if period_statuses %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="fas fa-calendar-check me-2"></i>Suivi de la scolarité — {{ selected_year.name }}</h6>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            {% for ps in period_statuses %}
+            <div class="col-md-4">
+                <div class="card border-{% if ps.is_up_to_date %}success{% else %}danger{% endif %}">
+                    <div class="card-body text-center p-3">
+                        <div class="mb-2">
+                            {% if ps.is_up_to_date %}
+                            <i class="fas fa-check-circle fa-2x text-success"></i>
+                            {% else %}
+                            <i class="fas fa-times-circle fa-2x text-danger"></i>
+                            {% endif %}
+                        </div>
+                        <h6 class="fw-bold">{{ ps.label }}</h6>
+                        <div class="small mb-2">
+                            Payé: <strong class="text-success">{{ ps.paid|floatformat:0 }} FCFA</strong><br>
+                            Attendu: <strong>{{ ps.expected|floatformat:0 }} FCFA</strong>
+                            {% if ps.remaining > 0 %}
+                            <br><span class="text-danger">Reste: {{ ps.remaining|floatformat:0 }} FCFA</span>
+                            {% endif %}
+                        </div>
+                        <div class="progress" style="height:8px;">
+                            <div class="progress-bar {% if ps.is_up_to_date %}bg-success{% else %}bg-warning{% endif %}"
+                                 style="width:{{ ps.percentage }}%"></div>
+                        </div>
+                        <div class="small text-muted mt-1">Échéance: {{ ps.due_date|date:"d/m/Y" }}</div>
+                        {% if ps.is_up_to_date %}
+                        <span class="badge bg-success mt-1">À jour</span>
+                        {% else %}
+                        <span class="badge bg-danger mt-1">En retard</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Historique des paiements -->
+<div class="card">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="fas fa-history me-2"></i>Historique des paiements
+            {% if selected_year %}— {{ selected_year.name }}{% endif %}
+        </h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Type de frais</th>
+                    <th>Période</th>
+                    <th class="text-end">Total dû</th>
+                    <th class="text-end">Payé</th>
+                    <th class="text-end">Reste</th>
+                    <th>Date</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in payments %}
+                <tr>
+                    <td>{{ payment.fee_type.name }}</td>
+                    <td>{{ payment.get_period_display|default:"—" }}</td>
+                    <td class="text-end">{{ payment.total_amount|floatformat:0 }}</td>
+                    <td class="text-end text-success">{{ payment.paid_amount|floatformat:0 }}</td>
+                    <td class="text-end {% if payment.remaining_amount > 0 %}text-danger{% else %}text-success{% endif %}">
+                        {{ payment.remaining_amount|floatformat:0 }}
+                    </td>
+                    <td>{{ payment.payment_date|date:"d/m/Y" }}</td>
+                    <td>
+                        {% if payment.status == 'completed' %}
+                        <span class="badge bg-success">Complet</span>
+                        {% elif payment.status == 'partial' %}
+                        <span class="badge bg-warning text-dark">Partiel</span>
+                        {% else %}
+                        <span class="badge bg-danger">En attente</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'payment_detail' payment.pk %}" class="btn btn-xs btn-outline-primary">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-4 text-muted">
+                        Aucun paiement enregistré pour cette année
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

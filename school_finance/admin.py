@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from .models import (
-    AcademicYear, FeeType, FeeStructure, Enrollment,
+    AcademicYear, FeeType, FeeStructure, PaymentSchedule, Enrollment,
     PaymentMethod, Payment, PaymentInstallment,
     StudentAccount, Receipt
 )
@@ -30,17 +30,52 @@ class FeeTypeAdmin(admin.ModelAdmin):
     ordering = ['category', 'name']
 
 
+class PaymentScheduleInline(admin.TabularInline):
+    model = PaymentSchedule
+    extra = 0
+    fields = ['period', 'expected_amount', 'due_date']
+
+
+@admin.register(PaymentSchedule)
+class PaymentScheduleAdmin(admin.ModelAdmin):
+    list_display = ['fee_structure', 'period', 'expected_amount_fmt', 'due_date']
+    list_filter = ['period', 'fee_structure__academic_year', 'fee_structure__class_level']
+    search_fields = ['fee_structure__fee_type__name', 'fee_structure__class_level__name']
+
+    def expected_amount_fmt(self, obj):
+        return format_html('<strong>{:,.0f} FCFA</strong>', obj.expected_amount)
+    expected_amount_fmt.short_description = 'Montant attendu'
+
+
 @admin.register(FeeStructure)
 class FeeStructureAdmin(admin.ModelAdmin):
-    list_display = ['fee_type', 'class_level', 'academic_year', 'amount_formatted', 'payment_frequency', 'is_active']
+    list_display = ['fee_type', 'class_level', 'academic_year', 'amount_formatted', 'payment_frequency', 'is_active_badge']
     list_filter = ['academic_year', 'class_level', 'fee_type__category', 'payment_frequency', 'is_active']
     search_fields = ['fee_type__name', 'class_level__name']
     date_hierarchy = 'created_at'
     ordering = ['academic_year', 'class_level', 'fee_type']
+    inlines = [PaymentScheduleInline]
+    actions = ['activate_structures', 'deactivate_structures']
 
     def amount_formatted(self, obj):
         return format_html('<strong>{:,.0f} FCFA</strong>', obj.amount)
     amount_formatted.short_description = 'Montant'
+
+    def is_active_badge(self, obj):
+        if obj.is_active:
+            return format_html('<span style="color:green;font-weight:bold;">✓ Actif</span>')
+        return format_html('<span style="color:red;">✗ Inactif</span>')
+    is_active_badge.short_description = 'Statut'
+
+    def activate_structures(self, request, queryset):
+        queryset.update(is_active=True)
+        self.message_user(request, f'{queryset.count()} structure(s) activée(s).')
+    activate_structures.short_description = 'Activer les frais sélectionnés'
+
+    def deactivate_structures(self, request, queryset):
+        queryset.update(is_active=False)
+        self.message_user(request, f'{queryset.count()} structure(s) désactivée(s).')
+    deactivate_structures.short_description = 'Désactiver les frais sélectionnés'
 
 
 @admin.register(Enrollment)

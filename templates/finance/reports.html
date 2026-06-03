@@ -1,0 +1,209 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Rapports Financiers{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-1">Rapports Financiers</h1>
+        <p class="text-muted mb-0">Synthèse des encaissements et soldes</p>
+    </div>
+    <form method="GET" class="d-flex gap-2 align-items-center">
+        <select name="year" class="form-select form-select-sm">
+            <option value="">-- Toutes les années --</option>
+            {% for year in academic_years %}
+            <option value="{{ year.id }}" {% if selected_year == year.id|stringformat:"s" %}selected{% endif %}>
+                {{ year.name }}{% if year.is_active %} ★{% endif %}
+            </option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary btn-sm">Filtrer</button>
+    </form>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted small mb-1">Total encaissé</p>
+                        <h4 class="fw-bold text-success mb-0">{{ total_received|floatformat:0 }} FCFA</h4>
+                    </div>
+                    <div class="bg-success bg-opacity-10 rounded-circle p-3">
+                        <i class="fas fa-check-circle fa-lg text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted small mb-1">Total attendu</p>
+                        <h4 class="fw-bold text-primary mb-0">{{ total_due|floatformat:0 }} FCFA</h4>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 rounded-circle p-3">
+                        <i class="fas fa-file-invoice-dollar fa-lg text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted small mb-1">Reste à percevoir</p>
+                        <h4 class="fw-bold text-danger mb-0">{{ total_remaining|floatformat:0 }} FCFA</h4>
+                    </div>
+                    <div class="bg-danger bg-opacity-10 rounded-circle p-3">
+                        <i class="fas fa-exclamation-circle fa-lg text-danger"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Par type de frais -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-tags me-2"></i>Par type de frais</h6>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Type</th>
+                            <th>Catégorie</th>
+                            <th class="text-end">Attendu</th>
+                            <th class="text-end">Encaissé</th>
+                            <th class="text-end">Reste</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in by_fee_type %}
+                        <tr>
+                            <td>{{ row.fee_type__name|default:"—" }}</td>
+                            <td><span class="badge bg-secondary">{{ row.fee_type__category|default:"—" }}</span></td>
+                            <td class="text-end">{{ row.total|floatformat:0 }}</td>
+                            <td class="text-end text-success fw-semibold">{{ row.paid|floatformat:0 }}</td>
+                            <td class="text-end text-danger">{{ row.total|add:"-"|add:row.paid|floatformat:0 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">Aucune donnée</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Par période -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Par période</h6>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Période</th>
+                            <th class="text-end">Attendu</th>
+                            <th class="text-end">Encaissé</th>
+                            <th>Taux</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in by_period %}
+                        <tr>
+                            <td>{{ row.period }}</td>
+                            <td class="text-end">{{ row.total|floatformat:0 }}</td>
+                            <td class="text-end text-success fw-semibold">{{ row.paid|floatformat:0 }}</td>
+                            <td>
+                                {% if row.total %}
+                                {% widthratio row.paid row.total 100 as pct %}
+                                <div class="progress" style="height:8px; min-width:80px;">
+                                    <div class="progress-bar bg-success" style="width:{{ pct }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ pct }}%</small>
+                                {% else %}—{% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-muted">Aucune donnée</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Évolution mensuelle -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Encaissements des 6 derniers mois</h6>
+            </div>
+            <div class="card-body">
+                {% if month_data %}
+                <div class="d-flex align-items-end gap-2" style="height: 200px;">
+                    {% with max_amount=month_data.0.amount %}
+                    {% for entry in month_data %}
+                    {% if entry.amount > max_amount %}{% with max_amount=entry.amount %}{% endwith %}{% endif %}
+                    {% endfor %}
+                    {% for entry in month_data %}
+                    <div class="flex-fill d-flex flex-column align-items-center">
+                        {% if entry.amount > 0 %}
+                        <small class="text-muted mb-1" style="font-size:10px;">{{ entry.amount|floatformat:0 }}</small>
+                        {% endif %}
+                        <div class="w-100 bg-primary rounded-top"
+                             style="height: {% if entry.amount > 0 %}{% widthratio entry.amount 1 1 %}px{% else %}4px{% endif %};
+                                    min-height: 4px; max-height: 160px;
+                                    height: calc({{ entry.amount }} / {% for e in month_data %}{% if forloop.last %}{{ e.amount|add:"1" }}{% endif %}{% endfor %} * 160px);">
+                        </div>
+                        <small class="text-muted mt-1" style="font-size:10px;">{{ entry.month }}</small>
+                    </div>
+                    {% endfor %}
+                    {% endwith %}
+                </div>
+                <hr>
+                <div class="table-responsive">
+                    <table class="table table-sm table-borderless mb-0">
+                        <thead>
+                            <tr>
+                                {% for entry in month_data %}
+                                <th class="text-center small">{{ entry.month }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                {% for entry in month_data %}
+                                <td class="text-center small fw-semibold text-success">{{ entry.amount|floatformat:0 }}</td>
+                                {% endfor %}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-4">Aucune donnée disponible</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

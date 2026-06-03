@@ -1,0 +1,298 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Nouveau Paiement{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-1">Nouveau Paiement</h1>
+        <p class="text-muted mb-0">Enregistrer un versement de scolarité ou autre frais</p>
+    </div>
+    <a href="{% url 'payments_list' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Retour
+    </a>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-money-bill me-2"></i>Informations du paiement</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{% url 'payment_create' %}" id="paymentForm">
+                    {% csrf_token %}
+
+                    <!-- Recherche par matricule -->
+                    <div class="mb-4 p-3 bg-light rounded">
+                        <label class="form-label fw-semibold">Recherche rapide par matricule</label>
+                        <div class="input-group">
+                            <input type="text" id="matriculeSearch" class="form-control"
+                                   placeholder="Ex: ET-2024-0001">
+                            <button type="button" class="btn btn-outline-primary" id="btnSearchMatricule">
+                                <i class="fas fa-search me-1"></i>Rechercher
+                            </button>
+                        </div>
+                        <div id="studentInfo" class="mt-2 d-none alert alert-success py-2"></div>
+                    </div>
+
+                    <div class="row g-3">
+                        <!-- Élève -->
+                        <div class="col-12">
+                            <label class="form-label">Élève <span class="text-danger">*</span></label>
+                            <select class="form-select" name="student" id="studentSelect" required>
+                                <option value="">-- Sélectionner un élève --</option>
+                                {% for student in students %}
+                                <option value="{{ student.id }}"
+                                    data-classe-id="{{ student.class_set.first.id|default:'' }}"
+                                    data-classe-name="{{ student.class_set.first.name|default:'' }}">
+                                    {{ student.name }} {{ student.first_name }} — {{ student.matricule }}
+                                    {% if student.class_set.first %}({{ student.class_set.first.name }}){% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Année scolaire -->
+                        <div class="col-md-6">
+                            <label class="form-label">Année scolaire <span class="text-danger">*</span></label>
+                            <select class="form-select" name="academic_year" id="academicYearSelect" required>
+                                <option value="">-- Sélectionner --</option>
+                                {% for year in academic_years %}
+                                <option value="{{ year.id }}"
+                                    {% if active_year and year.id == active_year.id %}selected{% endif %}>
+                                    {{ year.name }} {% if year.is_active %}(active){% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Type de frais -->
+                        <div class="col-md-6">
+                            <label class="form-label">Type de frais <span class="text-danger">*</span></label>
+                            <select class="form-select" name="fee_type" id="feeTypeSelect" required>
+                                <option value="">-- Sélectionner un type --</option>
+                                {% for ft in fee_types %}
+                                <option value="{{ ft.id }}" data-category="{{ ft.category }}">
+                                    {{ ft.name }} ({{ ft.get_category_display }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Période (masquée si frais non trimestriel) -->
+                        <div class="col-md-6" id="periodRow">
+                            <label class="form-label">Période</label>
+                            <select class="form-select" name="period" id="periodSelect">
+                                <option value="">-- Sans période --</option>
+                                <option value="trimestre1">Trimestre 1</option>
+                                <option value="trimestre2">Trimestre 2</option>
+                                <option value="trimestre3">Trimestre 3</option>
+                                <option value="semestre1">Semestre 1</option>
+                                <option value="semestre2">Semestre 2</option>
+                                <option value="annuel">Annuel</option>
+                            </select>
+                        </div>
+
+                        <!-- Montant attendu (auto-rempli depuis l'échéancier) -->
+                        <div class="col-md-6">
+                            <label class="form-label">Montant total dû (FCFA) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" name="total_amount"
+                                       id="totalAmount" required min="0" placeholder="0">
+                                <span class="input-group-text">FCFA</span>
+                            </div>
+                            <div id="scheduleHint" class="form-text text-success d-none">
+                                <i class="fas fa-calendar-check me-1"></i>
+                                <span id="scheduleHintText"></span>
+                            </div>
+                        </div>
+
+                        <!-- Montant versé -->
+                        <div class="col-md-6">
+                            <label class="form-label">Montant versé aujourd'hui (FCFA) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" name="paid_amount"
+                                       id="paidAmount" required min="0" placeholder="0">
+                                <span class="input-group-text">FCFA</span>
+                            </div>
+                            <div id="remainingHint" class="form-text d-none">
+                                Reste après ce versement: <strong id="remainingAmount"></strong> FCFA
+                            </div>
+                        </div>
+
+                        <!-- Mode de paiement -->
+                        <div class="col-md-6">
+                            <label class="form-label">Mode de paiement <span class="text-danger">*</span></label>
+                            <select class="form-select" name="payment_method" required>
+                                <option value="">-- Sélectionner --</option>
+                                {% for pm in payment_methods %}
+                                <option value="{{ pm.id }}">{{ pm.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Date -->
+                        <div class="col-md-6">
+                            <label class="form-label">Date du versement <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" name="payment_date"
+                                   value="{{ today }}" required>
+                        </div>
+
+                        <!-- Reçu par -->
+                        <div class="col-md-6">
+                            <label class="form-label">Reçu par</label>
+                            <input type="text" class="form-control" name="received_by"
+                                   value="{{ request.user.get_full_name }}" placeholder="Nom du caissier">
+                        </div>
+
+                        <!-- Référence -->
+                        <div class="col-md-6">
+                            <label class="form-label">N° Référence / Transaction</label>
+                            <input type="text" class="form-control" name="reference"
+                                   placeholder="Optionnel">
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="col-12">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-control" name="notes" rows="2"
+                                      placeholder="Informations complémentaires..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Enregistrer et générer le reçu
+                        </button>
+                        <a href="{% url 'payments_list' %}" class="btn btn-outline-secondary">Annuler</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Side panel -->
+    <div class="col-lg-4">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Comment ça marche</h6>
+            </div>
+            <div class="card-body small">
+                <ol class="ps-3 mb-0">
+                    <li class="mb-2">Sélectionnez l'élève (ou recherchez par matricule)</li>
+                    <li class="mb-2">Choisissez le type de frais et la période</li>
+                    <li class="mb-2">Le montant attendu se remplit automatiquement si un échéancier est configuré</li>
+                    <li class="mb-2">Entrez le montant versé (peut être partiel)</li>
+                    <li>Un <strong>reçu numéroté</strong> est généré automatiquement</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">Légende statuts</h6>
+            </div>
+            <div class="card-body small">
+                <div class="d-flex align-items-center mb-2">
+                    <span class="badge bg-success me-2">Complet</span>
+                    Montant intégralement payé
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                    <span class="badge bg-warning text-dark me-2">Partiel</span>
+                    Paiement en cours (reste dû)
+                </div>
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-danger me-2">En attente</span>
+                    Aucun versement effectué
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const SCHEDULE_URL = "{% url 'get_schedule_amount' %}";
+const STUDENT_URL = "{% url 'get_student_by_matricule' %}";
+
+// Auto-fetch schedule amount when class/fee_type/period/year changes
+function fetchScheduleAmount() {
+    const studentOpt = document.getElementById('studentSelect').selectedOptions[0];
+    const classId = studentOpt ? studentOpt.dataset.classeId : '';
+    const feeTypeId = document.getElementById('feeTypeSelect').value;
+    const yearId = document.getElementById('academicYearSelect').value;
+    const period = document.getElementById('periodSelect').value;
+
+    if (!classId || !feeTypeId || !yearId) return;
+
+    fetch(`${SCHEDULE_URL}?class_id=${classId}&fee_type_id=${feeTypeId}&academic_year_id=${yearId}&period=${period}`)
+        .then(r => r.json())
+        .then(data => {
+            const hint = document.getElementById('scheduleHint');
+            const hintText = document.getElementById('scheduleHintText');
+            if (data.success && data.amount > 0) {
+                document.getElementById('totalAmount').value = data.amount;
+                hint.classList.remove('d-none');
+                hintText.textContent = `Échéancier: ${data.amount.toLocaleString()} FCFA`;
+                if (data.due_date) {
+                    hintText.textContent += ` — Échéance: ${data.due_date}`;
+                }
+            } else {
+                hint.classList.add('d-none');
+            }
+            updateRemaining();
+        });
+}
+
+['studentSelect', 'feeTypeSelect', 'academicYearSelect', 'periodSelect'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', fetchScheduleAmount);
+});
+
+// Remaining amount indicator
+function updateRemaining() {
+    const total = parseFloat(document.getElementById('totalAmount').value) || 0;
+    const paid = parseFloat(document.getElementById('paidAmount').value) || 0;
+    const hint = document.getElementById('remainingHint');
+    if (total > 0 && paid > 0) {
+        const remaining = total - paid;
+        document.getElementById('remainingAmount').textContent = remaining.toLocaleString();
+        hint.classList.remove('d-none');
+        hint.className = `form-text d-block ${remaining > 0 ? 'text-warning' : 'text-success'}`;
+    } else {
+        hint.classList.add('d-none');
+    }
+}
+document.getElementById('totalAmount')?.addEventListener('input', updateRemaining);
+document.getElementById('paidAmount')?.addEventListener('input', updateRemaining);
+
+// Matricule search
+document.getElementById('btnSearchMatricule')?.addEventListener('click', function() {
+    const matricule = document.getElementById('matriculeSearch').value.trim();
+    if (!matricule) return;
+    fetch(`${STUDENT_URL}?matricule=${encodeURIComponent(matricule)}`)
+        .then(r => r.json())
+        .then(data => {
+            const info = document.getElementById('studentInfo');
+            if (data.success) {
+                const s = data.student;
+                info.innerHTML = `<strong>${s.name} ${s.first_name}</strong> — ${s.matricule} — Classe: ${s.classe || 'N/A'}`;
+                info.classList.remove('d-none', 'alert-danger');
+                info.classList.add('alert-success');
+                // Select student in dropdown
+                const sel = document.getElementById('studentSelect');
+                for (let opt of sel.options) {
+                    if (opt.value == s.id) { sel.value = s.id; break; }
+                }
+                fetchScheduleAmount();
+            } else {
+                info.textContent = data.message;
+                info.classList.remove('d-none', 'alert-success');
+                info.classList.add('alert-danger');
+            }
+        });
+});
+</script>
+{% endblock %}

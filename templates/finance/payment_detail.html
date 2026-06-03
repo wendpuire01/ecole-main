@@ -1,0 +1,273 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Détail Paiement — {{ payment.student.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-1">Détail du Paiement</h1>
+        <p class="text-muted mb-0">{{ payment.student.name }} {{ payment.student.first_name }} — {{ payment.fee_type.name }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% with receipt=payment.receipts.last %}
+        {% if receipt %}
+        <a href="{% url 'receipt_view' receipt.receipt_number %}" class="btn btn-outline-info" target="_blank">
+            <i class="fas fa-print me-2"></i>Dernier reçu
+        </a>
+        {% endif %}
+        {% endwith %}
+        <a href="{% url 'payments_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Retour
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Payment summary -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0"><i class="fas fa-user me-2"></i>Informations</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm mb-0">
+                    <tr>
+                        <th class="text-muted fw-normal">Élève</th>
+                        <td class="fw-semibold">{{ payment.student.name }} {{ payment.student.first_name }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted fw-normal">Matricule</th>
+                        <td>{{ payment.student.matricule }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted fw-normal">Classe</th>
+                        <td>{{ payment.student.class_set.first.name|default:"—" }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted fw-normal">Année</th>
+                        <td>{{ payment.academic_year.name }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted fw-normal">Type de frais</th>
+                        <td>{{ payment.fee_type.name }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted fw-normal">Période</th>
+                        <td>{{ payment.get_period_display|default:"—" }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted fw-normal">Date 1er versement</th>
+                        <td>{{ payment.payment_date|date:"d/m/Y" }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted fw-normal">Reçu par</th>
+                        <td>{{ payment.received_by|default:"—" }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Amounts -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">Suivi financier</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">Total dû</span>
+                    <strong>{{ payment.total_amount|floatformat:0 }} FCFA</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">Payé</span>
+                    <strong class="text-success">{{ payment.paid_amount|floatformat:0 }} FCFA</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="text-muted">Reste</span>
+                    <strong class="{% if payment.remaining_amount > 0 %}text-danger{% else %}text-success{% endif %}">
+                        {{ payment.remaining_amount|floatformat:0 }} FCFA
+                    </strong>
+                </div>
+                <div class="progress mb-2" style="height: 10px;">
+                    <div class="progress-bar bg-success" style="width: {{ payment.payment_percentage|floatformat:0 }}%"></div>
+                </div>
+                <div class="text-center small text-muted">{{ payment.payment_percentage|floatformat:0 }}% payé</div>
+
+                <div class="mt-3 text-center">
+                    {% if payment.status == 'completed' %}
+                    <span class="badge bg-success fs-6">Paiement complet</span>
+                    {% elif payment.status == 'partial' %}
+                    <span class="badge bg-warning text-dark fs-6">Paiement partiel</span>
+                    {% else %}
+                    <span class="badge bg-danger fs-6">En attente</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <!-- Versements -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="fas fa-list me-2"></i>Versements effectués</h6>
+                {% if not payment.is_fully_paid %}
+                <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addInstallmentModal">
+                    <i class="fas fa-plus me-1"></i>Ajouter un versement
+                </button>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>N°</th>
+                            <th>Date</th>
+                            <th class="text-end">Montant</th>
+                            <th>Mode</th>
+                            <th>Référence</th>
+                            <th>Reçu par</th>
+                            <th>Reçu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inst in installments %}
+                        <tr>
+                            <td><span class="badge bg-primary">#{{ inst.installment_number }}</span></td>
+                            <td>{{ inst.payment_date|date:"d/m/Y" }}</td>
+                            <td class="text-end fw-semibold text-success">{{ inst.amount|floatformat:0 }} FCFA</td>
+                            <td>{{ inst.payment_method.name|default:"—" }}</td>
+                            <td><small class="text-muted">{{ inst.reference_number|default:"—" }}</small></td>
+                            <td><small>{{ inst.received_by|default:"—" }}</small></td>
+                            <td>
+                                {% with receipt=inst.receipts.first %}
+                                {% if receipt %}
+                                <a href="{% url 'receipt_view' receipt.receipt_number %}"
+                                   class="btn btn-xs btn-outline-info" target="_blank" title="{{ receipt.receipt_number }}">
+                                    <i class="fas fa-receipt me-1"></i>{{ receipt.receipt_number }}
+                                </a>
+                                {% else %}—{% endif %}
+                                {% endwith %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-3 text-muted">Aucun versement</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    {% if installments %}
+                    <tfoot class="table-light">
+                        <tr>
+                            <td colspan="2" class="fw-bold">Total versé</td>
+                            <td class="text-end fw-bold text-success">{{ payment.paid_amount|floatformat:0 }} FCFA</td>
+                            <td colspan="4"></td>
+                        </tr>
+                    </tfoot>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+
+        <!-- Reçus -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-receipt me-2"></i>Reçus émis</h6>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>N° Reçu</th>
+                            <th>Date</th>
+                            <th class="text-end">Montant</th>
+                            <th>Émis par</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rec in receipts %}
+                        <tr>
+                            <td><strong>{{ rec.receipt_number }}</strong></td>
+                            <td>{{ rec.issue_date|date:"d/m/Y" }}</td>
+                            <td class="text-end">{{ rec.amount|floatformat:0 }} FCFA</td>
+                            <td>{{ rec.issued_by }}</td>
+                            <td>
+                                <a href="{% url 'receipt_view' rec.receipt_number %}"
+                                   class="btn btn-sm btn-outline-primary" target="_blank">
+                                    <i class="fas fa-print me-1"></i>Imprimer
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-3 text-muted">Aucun reçu</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Ajouter versement -->
+<div class="modal fade" id="addInstallmentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>Nouveau versement
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'add_installment' payment.pk %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        Reste à payer: <strong>{{ payment.remaining_amount|floatformat:0 }} FCFA</strong>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Montant versé (FCFA) <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" name="amount" required
+                               min="1" max="{{ payment.remaining_amount|floatformat:0 }}"
+                               placeholder="Montant du versement">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mode de paiement <span class="text-danger">*</span></label>
+                        <select class="form-select" name="payment_method" required>
+                            <option value="">-- Sélectionner --</option>
+                            {% for pm in payment_methods %}
+                            <option value="{{ pm.id }}">{{ pm.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Date du versement <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" name="payment_date" value="{{ today }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Reçu par</label>
+                        <input type="text" class="form-control" name="received_by"
+                               value="{{ request.user.get_full_name }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">N° Référence</label>
+                        <input type="text" class="form-control" name="reference">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" name="notes" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save me-2"></i>Enregistrer et générer le reçu
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

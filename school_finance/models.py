@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.validators import MinValueValidator
 from decimal import Decimal
+from django.db.models import Sum
 from school_portal.models import Student, Class
 
 
@@ -94,6 +95,38 @@ class FeeStructure(models.Model):
 
     def __str__(self):
         return f"{self.fee_type.name} - {self.class_level.name} ({self.academic_year.name})"
+
+
+class PaymentSchedule(models.Model):
+    """Échéancier: montant attendu par période pour une structure de frais"""
+    PERIOD_CHOICES = [
+        ('trimestre1', 'Trimestre 1'),
+        ('trimestre2', 'Trimestre 2'),
+        ('trimestre3', 'Trimestre 3'),
+        ('semestre1', 'Semestre 1'),
+        ('semestre2', 'Semestre 2'),
+    ]
+
+    fee_structure = models.ForeignKey(
+        FeeStructure, on_delete=models.CASCADE,
+        related_name='schedules', verbose_name="Structure de frais"
+    )
+    period = models.CharField(max_length=20, choices=PERIOD_CHOICES, verbose_name="Période")
+    expected_amount = models.DecimalField(
+        max_digits=10, decimal_places=0,
+        validators=[MinValueValidator(Decimal('0'))],
+        verbose_name="Montant attendu (FCFA)"
+    )
+    due_date = models.DateField(verbose_name="Date d'échéance")
+
+    class Meta:
+        verbose_name = "Échéancier"
+        verbose_name_plural = "Échéanciers"
+        ordering = ['fee_structure', 'period']
+        unique_together = ['fee_structure', 'period']
+
+    def __str__(self):
+        return f"{self.get_period_display()}: {self.expected_amount:,} FCFA"
 
 
 class Enrollment(models.Model):
@@ -357,8 +390,12 @@ class StudentAccount(models.Model):
 
 
 class Receipt(models.Model):
-    """Reçus de paiement"""
+    """Reçus de paiement — un reçu par versement"""
     payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name='receipts', verbose_name="Paiement")
+    installment = models.ForeignKey(
+        PaymentInstallment, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='receipts', verbose_name="Versement"
+    )
     receipt_number = models.CharField(max_length=50, unique=True, verbose_name="Numéro de reçu")
     amount = models.DecimalField(
         max_digits=10,
