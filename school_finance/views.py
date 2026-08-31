@@ -266,10 +266,32 @@ def receipt_view(request, receipt_number):
         ),
         receipt_number=receipt_number
     )
+
+    # Historique des versements avec cumul progressif
+    all_installments = receipt.payment.installments.select_related(
+        'payment_method'
+    ).order_by('installment_number')
+
+    total = receipt.payment.total_amount
+    cumulative = Decimal('0')
+    installments_with_cumul = []
+    for inst in all_installments:
+        cumulative += inst.amount
+        installments_with_cumul.append({
+            'obj':        inst,
+            'cumulative': cumulative,
+            'remaining':  max(total - cumulative, Decimal('0')),
+            'is_current': receipt.installment_id == inst.pk,
+        })
+
     school = SchoolSettings.objects.first()
     context = {
-        'receipt': receipt,
-        'school': school,
+        'receipt':   receipt,
+        'school':    school,
+        'installments_with_cumul': installments_with_cumul,
+        'total_paid':    receipt.payment.paid_amount,
+        'total_amount':  receipt.payment.total_amount,
+        'remaining':     receipt.payment.remaining_amount,
     }
     return render(request, 'finance/receipt.html', context)
 

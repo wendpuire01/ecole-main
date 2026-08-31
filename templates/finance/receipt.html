@@ -14,138 +14,213 @@
         }
         .page {
             width: 210mm;
-            min-height: 140mm;
+            min-height: 148mm;
             margin: 20px auto;
             background: white;
-            padding: 20px 25px;
+            padding: 22px 28px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
             border-radius: 4px;
         }
+
+        /* ── HEADER ── */
         .header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            border-bottom: 2px solid #1a56db;
-            padding-bottom: 12px;
-            margin-bottom: 14px;
+            border-bottom: 3px solid #1a56db;
+            padding-bottom: 14px;
+            margin-bottom: 16px;
         }
-        .school-info h2 { font-size: 16px; color: #1a56db; font-weight: bold; }
-        .school-info p { font-size: 11px; color: #555; margin-top: 2px; }
-        .receipt-badge {
-            text-align: right;
+        .school-identity {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
         }
-        .receipt-badge h3 { font-size: 20px; color: #1a56db; font-weight: bold; }
-        .receipt-badge .receipt-num {
-            font-size: 13px; font-weight: bold;
-            background: #1a56db; color: white;
-            padding: 3px 10px; border-radius: 3px;
-            display: inline-block; margin-top: 4px;
+        .school-logo {
+            width: 64px;
+            height: 64px;
+            object-fit: contain;
+            flex-shrink: 0;
         }
-        .receipt-badge .date { font-size: 11px; color: #555; margin-top: 4px; }
+        .school-logo-placeholder {
+            width: 64px;
+            height: 64px;
+            background: #e8eeff;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            color: #1a56db;
+            flex-shrink: 0;
+        }
+        .school-info h2 { font-size: 15px; color: #1a56db; font-weight: bold; }
+        .school-info p  { font-size: 11px; color: #555; margin-top: 2px; }
 
+        .receipt-badge { text-align: right; }
+        .receipt-badge h3 { font-size: 18px; color: #1a56db; font-weight: bold; letter-spacing: 1px; }
+        .receipt-num {
+            display: inline-block;
+            margin-top: 6px;
+            background: #1a56db;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            padding: 4px 14px;
+            border-radius: 20px;
+            letter-spacing: 1px;
+        }
+        .receipt-badge .date { font-size: 11px; color: #555; margin-top: 6px; }
+
+        /* ── INFO GRID ── */
         .info-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
             gap: 8px;
             margin-bottom: 14px;
         }
         .info-box {
             border: 1px solid #e0e0e0;
             border-radius: 4px;
-            padding: 8px 10px;
+            padding: 7px 10px;
         }
-        .info-box .label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+        .info-box .label { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
         .info-box .value { font-size: 13px; font-weight: bold; margin-top: 2px; }
 
+        /* ── AMOUNT HIGHLIGHT ── */
         .amount-section {
             background: #f0f7ff;
             border: 2px solid #1a56db;
             border-radius: 6px;
-            padding: 12px 16px;
+            padding: 12px 18px;
             margin-bottom: 14px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .amount-section .label { font-size: 12px; color: #1a56db; font-weight: bold; }
-        .amount-section .amount { font-size: 22px; font-weight: bold; color: #1a56db; }
-        .amount-section .amount-words { font-size: 11px; color: #555; margin-top: 2px; }
+        .amount-section .label       { font-size: 11px; color: #1a56db; font-weight: bold; text-transform: uppercase; }
+        .amount-section .sub-label   { font-size: 10px; color: #555; margin-top: 3px; }
+        .amount-section .amount      { font-size: 24px; font-weight: bold; color: #1a56db; white-space: nowrap; }
 
+        /* ── VERSEMENTS TABLE ── */
+        .section-title {
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #555;
+            margin-bottom: 6px;
+        }
         .details-table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 14px;
+            font-size: 12px;
         }
         .details-table th {
             background: #f5f5f5;
             padding: 6px 8px;
-            font-size: 11px;
+            font-size: 10px;
             text-align: left;
             border: 1px solid #ddd;
             text-transform: uppercase;
             color: #555;
         }
         .details-table td {
-            padding: 7px 8px;
+            padding: 6px 8px;
             border: 1px solid #ddd;
-            font-size: 12px;
         }
+        .details-table tr.current-row {
+            background: #fffde7;
+            font-weight: bold;
+        }
+        .details-table .text-right { text-align: right; }
+        .details-table .text-center { text-align: center; }
 
+        /* ── TOTALS BAR ── */
+        .totals-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .total-box {
+            flex: 1;
+            border-radius: 5px;
+            padding: 8px 12px;
+            text-align: center;
+        }
+        .total-box .t-label { font-size: 10px; color: #555; text-transform: uppercase; }
+        .total-box .t-value { font-size: 14px; font-weight: bold; margin-top: 2px; }
+        .total-box.total-due      { background: #f3f4f6; border: 1px solid #ddd; }
+        .total-box.total-paid     { background: #d1fae5; border: 1px solid #6ee7b7; }
+        .total-box.total-paid .t-value { color: #065f46; }
+        .total-box.total-remaining { background: #fef3c7; border: 1px solid #fcd34d; }
+        .total-box.total-remaining.cleared { background: #d1fae5; border: 1px solid #6ee7b7; }
+        .total-box.total-remaining .t-value { color: #92400e; }
+        .total-box.total-remaining.cleared .t-value { color: #065f46; }
+
+        /* ── FOOTER ── */
         .footer {
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
-            margin-top: 16px;
             border-top: 1px dashed #ccc;
             padding-top: 12px;
+            margin-top: 6px;
         }
-        .footer .note { font-size: 10px; color: #888; max-width: 200px; }
+        .footer .note { font-size: 10px; color: #888; max-width: 200px; line-height: 1.5; }
         .signature-box { text-align: center; }
         .signature-box .sig-line {
-            width: 150px; border-bottom: 1px solid #333;
-            margin: 30px auto 4px;
+            width: 140px; border-bottom: 1px solid #333;
+            margin: 28px auto 4px;
         }
-        .signature-box .sig-label { font-size: 11px; color: #555; }
+        .signature-box .sig-label { font-size: 11px; color: #555; font-weight: bold; }
+        .signature-box .sig-name  { font-size: 11px; color: #333; margin-top: 2px; }
 
-        .status-badge {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 3px;
-            font-size: 11px;
-            font-weight: bold;
+        .tag-current {
+            background: #1a56db; color: white;
+            font-size: 9px; padding: 1px 6px; border-radius: 8px;
+            vertical-align: middle; margin-left: 4px;
         }
-        .status-complete { background: #d1fae5; color: #065f46; }
-        .status-partial { background: #fef3c7; color: #92400e; }
 
         @media print {
             body { background: white; }
-            .page { margin: 0; box-shadow: none; }
+            .page { margin: 0; box-shadow: none; border-radius: 0; }
             .no-print { display: none !important; }
         }
     </style>
 </head>
 <body>
 
-<div class="no-print" style="text-align:center; padding: 12px; background: #1a56db; color:white;">
-    <button onclick="window.print()" style="background:white; color:#1a56db; border:none; padding:8px 20px; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:8px;">
+<div class="no-print" style="text-align:center; padding: 10px 20px; background: #1a56db; color:white; display:flex; justify-content:center; gap:10px;">
+    <button onclick="window.print()" style="background:white; color:#1a56db; border:none; padding:8px 22px; border-radius:4px; font-weight:bold; cursor:pointer;">
         🖨️ Imprimer
     </button>
-    <button onclick="window.close()" style="background:transparent; color:white; border:1px solid white; padding:8px 20px; border-radius:4px; cursor:pointer;">
-        Fermer
+    <button onclick="window.close()" style="background:transparent; color:white; border:1px solid white; padding:8px 22px; border-radius:4px; cursor:pointer;">
+        ✕ Fermer
     </button>
 </div>
 
 <div class="page">
-    <!-- Header -->
+
+    <!-- ════════════ HEADER ════════════ -->
     <div class="header">
-        <div class="school-info">
-            {% if school %}
-            <h2>{{ school.name }}</h2>
-            <p>{{ school.address }}</p>
-            <p>Tél: {{ school.phone }}{% if school.email %} | {{ school.email }}{% endif %}</p>
+        <div class="school-identity">
+            {% if school and school.logo %}
+                <img src="{{ school.logo.url }}" alt="Logo" class="school-logo">
             {% else %}
-            <h2>ÉTABLISSEMENT SCOLAIRE</h2>
+                <div class="school-logo-placeholder">🏫</div>
             {% endif %}
+            <div class="school-info">
+                {% if school %}
+                    <h2>{{ school.name }}</h2>
+                    {% if school.address %}<p>{{ school.address }}</p>{% endif %}
+                    {% if school.phone %}<p>Tél : {{ school.phone }}{% if school.email %} &nbsp;|&nbsp; {{ school.email }}{% endif %}</p>{% endif %}
+                    {% if school.director_name %}<p>Direction : {{ school.director_name }}</p>{% endif %}
+                {% else %}
+                    <h2>ÉTABLISSEMENT SCOLAIRE</h2>
+                {% endif %}
+            </div>
         </div>
         <div class="receipt-badge">
             <h3>REÇU DE PAIEMENT</h3>
@@ -154,7 +229,7 @@
         </div>
     </div>
 
-    <!-- Student + payment info -->
+    <!-- ════════════ INFOS ÉLÈVE ════════════ -->
     <div class="info-grid">
         <div class="info-box">
             <div class="label">Élève</div>
@@ -174,78 +249,88 @@
         </div>
     </div>
 
-    <!-- Amount highlight -->
+    <!-- ════════════ MONTANT CE VERSEMENT ════════════ -->
     <div class="amount-section">
         <div>
-            <div class="label">Montant reçu</div>
-            <div class="amount-words">
-                {% if receipt.installment %}
-                Versement #{{ receipt.installment.installment_number }}
-                {% endif %}
-                — {{ receipt.payment.fee_type.name }}
-                {% if receipt.payment.period %}| {{ receipt.payment.get_period_display }}{% endif %}
+            <div class="label">Montant reçu — {{ receipt.payment.fee_type.name }}</div>
+            <div class="sub-label">
+                {% if receipt.installment %}Versement #{{ receipt.installment.installment_number }}{% endif %}
+                {% if receipt.payment.period %}&nbsp;·&nbsp; {{ receipt.payment.get_period_display }}{% endif %}
+                &nbsp;·&nbsp; Caissier : {{ receipt.issued_by }}
             </div>
         </div>
         <div class="amount">{{ receipt.amount|floatformat:0 }} FCFA</div>
     </div>
 
-    <!-- Details table -->
+    <!-- ════════════ HISTORIQUE DES VERSEMENTS ════════════ -->
+    {% if installments_with_cumul %}
+    <div class="section-title">Historique des versements</div>
     <table class="details-table">
         <thead>
             <tr>
-                <th>Désignation</th>
-                <th>Période</th>
+                <th class="text-center">#</th>
+                <th>Date</th>
                 <th>Mode de paiement</th>
                 <th>Référence</th>
-                <th>Statut du paiement</th>
+                <th class="text-right">Montant</th>
+                <th class="text-right">Cumul versé</th>
+                <th class="text-right">Reste</th>
             </tr>
         </thead>
         <tbody>
-            <tr>
-                <td>{{ receipt.payment.fee_type.name }}</td>
-                <td>{{ receipt.payment.get_period_display|default:"—" }}</td>
-                <td>
-                    {% if receipt.installment and receipt.installment.payment_method %}
-                        {{ receipt.installment.payment_method.name }}
-                    {% elif receipt.payment.payment_method %}
-                        {{ receipt.payment.payment_method.name }}
-                    {% else %}—{% endif %}
+        {% for row in installments_with_cumul %}
+            <tr {% if row.is_current %}class="current-row"{% endif %}>
+                <td class="text-center">
+                    {{ row.obj.installment_number }}
+                    {% if row.is_current %}<span class="tag-current">CE REÇU</span>{% endif %}
                 </td>
-                <td>
-                    {% if receipt.installment and receipt.installment.reference_number %}
-                        {{ receipt.installment.reference_number }}
-                    {% elif receipt.payment.reference_number %}
-                        {{ receipt.payment.reference_number }}
-                    {% else %}—{% endif %}
-                </td>
-                <td>
-                    {% if receipt.payment.status == 'completed' %}
-                    <span class="status-badge status-complete">Complet</span>
-                    {% else %}
-                    <span class="status-badge status-partial">
-                        Partiel — Reste: {{ receipt.payment.remaining_amount|floatformat:0 }} FCFA
-                    </span>
-                    {% endif %}
+                <td>{{ row.obj.payment_date|date:"d/m/Y" }}</td>
+                <td>{{ row.obj.payment_method.name|default:"—" }}</td>
+                <td>{{ row.obj.reference_number|default:"—" }}</td>
+                <td class="text-right">{{ row.obj.amount|floatformat:0 }} FCFA</td>
+                <td class="text-right">{{ row.cumulative|floatformat:0 }} FCFA</td>
+                <td class="text-right"
+                    style="color:{% if row.remaining == 0 %}#065f46{% else %}#92400e{% endif %}; font-weight:bold;">
+                    {{ row.remaining|floatformat:0 }} FCFA
                 </td>
             </tr>
+        {% endfor %}
         </tbody>
     </table>
+    {% endif %}
 
-    <!-- Footer -->
+    <!-- ════════════ BARRE TOTAUX ════════════ -->
+    <div class="totals-bar">
+        <div class="total-box total-due">
+            <div class="t-label">Total à payer</div>
+            <div class="t-value">{{ total_amount|floatformat:0 }} FCFA</div>
+        </div>
+        <div class="total-box total-paid">
+            <div class="t-label">Total versé (cumul)</div>
+            <div class="t-value">{{ total_paid|floatformat:0 }} FCFA</div>
+        </div>
+        <div class="total-box total-remaining {% if remaining == 0 %}cleared{% endif %}">
+            <div class="t-label">{% if remaining == 0 %}Soldé ✓{% else %}Reste à payer{% endif %}</div>
+            <div class="t-value">{{ remaining|floatformat:0 }} FCFA</div>
+        </div>
+    </div>
+
+    <!-- ════════════ FOOTER ════════════ -->
     <div class="footer">
         <div class="note">
-            Ce reçu est la preuve du paiement effectué.
-            Conservez-le précieusement.
+            Ce reçu est la preuve officielle du paiement effectué.<br>
+            Conservez-le précieusement.<br>
+            {% if school %}{{ school.name }}{% endif %}
         </div>
         <div class="signature-box">
             <div class="sig-line"></div>
             <div class="sig-label">Signature du caissier</div>
             {% if receipt.issued_by %}
-            <div style="font-size:11px; margin-top:2px; color:#555;">{{ receipt.issued_by }}</div>
+            <div class="sig-name">{{ receipt.issued_by }}</div>
             {% endif %}
         </div>
     </div>
-</div>
 
+</div>
 </body>
 </html>
