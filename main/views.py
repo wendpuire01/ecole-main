@@ -315,6 +315,8 @@ def user_create(request):
         'action': 'create',
         'role_choices': UserProfile.ROLE_CHOICES,
         'teachers': teachers,
+        'target_user': None,
+        'profile': None,
     })
 
 
