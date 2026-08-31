@@ -338,7 +338,7 @@ def user_create(request):
             profile, _ = UserProfile.objects.get_or_create(user=user)
             profile.role = role
             profile.phone = phone
-            if teacher_id and role == 'educator':
+            if teacher_id and role == 'teacher':
                 profile.teacher_id = teacher_id
             profile.save()
             messages.success(request, f'Utilisateur « {username} » créé avec succès.')
@@ -370,7 +370,7 @@ def user_edit(request, pk):
         profile.role  = request.POST.get('role', profile.role)
         profile.phone = request.POST.get('phone', '').strip()
         teacher_id    = request.POST.get('teacher_id') or None
-        if profile.role == 'educator' and teacher_id:
+        if profile.role == 'teacher' and teacher_id:
             profile.teacher_id = teacher_id
         else:
             profile.teacher = None

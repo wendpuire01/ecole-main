@@ -27,11 +27,23 @@ def admin_required(view_func):
     return role_required('admin', 'founder')(view_func)
 
 
+def payment_required(view_func):
+    return role_required('admin', 'founder', 'director', 'cashier')(view_func)
+
+
+def enrollment_required(view_func):
+    return role_required('admin', 'founder', 'director', 'educator', 'cashier')(view_func)
+
+
 def finance_required(view_func):
     return role_required('admin', 'founder', 'director', 'cashier')(view_func)
 
 
 def academic_required(view_func):
+    return role_required('admin', 'founder', 'director', 'educator', 'teacher')(view_func)
+
+
+def teacher_mgmt_required(view_func):
     return role_required('admin', 'founder', 'director', 'educator')(view_func)
 
 

@@ -82,6 +82,7 @@
                             {% elif role == 'founder' %}bg-dark
                             {% elif role == 'director' %}bg-primary
                             {% elif role == 'educator' %}bg-success
+                            {% elif role == 'teacher' %}bg-info text-dark
                             {% elif role == 'cashier' %}bg-warning text-dark
                             {% else %}bg-secondary{% endif %}">
                             {{ u.profile.get_role_display }}

@@ -9,25 +9,24 @@ class UserProfile(models.Model):
         ('admin',     'Administrateur'),
         ('founder',   'Fondateur'),
         ('director',  'Directeur'),
-        ('educator',  'Éducateur'),
-        ('cashier',   'Caissier'),
+        ('educator',  'Surveillant'),   # gère académique + inscriptions, pas paiements
+        ('teacher',   'Enseignant'),    # saisit les notes de ses classes uniquement
+        ('cashier',   'Caissier'),      # gère paiements + inscriptions
     ]
 
-    # Rôles avec accès complet (admin + fondateur)
-    SUPER_ROLES   = ('admin', 'founder')
-    # Rôles pouvant gérer la finance
-    FINANCE_ROLES = ('admin', 'founder', 'director', 'cashier')
-    # Rôles pouvant gérer l'académique
-    ACADEMIC_ROLES = ('admin', 'founder', 'director', 'educator')
-    # Rôles pouvant accéder aux paramètres / administration
-    MGMT_ROLES    = ('admin', 'founder', 'director')
+    SUPER_ROLES          = ('admin', 'founder')
+    ACADEMIC_ROLES       = ('admin', 'founder', 'director', 'educator', 'teacher')
+    PAYMENT_ROLES        = ('admin', 'founder', 'director', 'cashier')
+    ENROLLMENT_ROLES     = ('admin', 'founder', 'director', 'educator', 'cashier')
+    TEACHER_MGMT_ROLES   = ('admin', 'founder', 'director', 'educator')
+    MGMT_ROLES           = ('admin', 'founder', 'director')
 
     user      = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     role      = models.CharField(max_length=20, choices=ROLE_CHOICES, default='admin')
     teacher   = models.ForeignKey(
         'school_portal.Teacher', null=True, blank=True,
         on_delete=models.SET_NULL, related_name='user_account',
-        verbose_name='Éducateur lié'
+        verbose_name='Enseignant lié'
     )
     phone     = models.CharField(max_length=20, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -39,7 +38,7 @@ class UserProfile(models.Model):
     def __str__(self):
         return f"{self.user.username} — {self.get_role_display()}"
 
-    # ---------- helpers ----------
+    # ── Helpers ──
     @property
     def is_admin(self):
         return self.role in self.SUPER_ROLES
@@ -49,20 +48,32 @@ class UserProfile(models.Model):
         return self.role in ('admin', 'founder', 'director')
 
     @property
-    def can_manage_finance(self):
-        return self.role in self.FINANCE_ROLES
-
-    @property
     def can_manage_academic(self):
         return self.role in self.ACADEMIC_ROLES
 
     @property
-    def can_manage_users(self):
-        return self.role in self.SUPER_ROLES
+    def can_manage_payments(self):
+        return self.role in self.PAYMENT_ROLES
+
+    @property
+    def can_manage_enrollments(self):
+        return self.role in self.ENROLLMENT_ROLES
+
+    @property
+    def can_manage_finance(self):
+        return self.can_manage_payments or self.can_manage_enrollments
+
+    @property
+    def can_manage_teachers(self):
+        return self.role in self.TEACHER_MGMT_ROLES
 
     @property
     def can_manage_settings(self):
         return self.role in self.MGMT_ROLES
+
+    @property
+    def can_manage_users(self):
+        return self.role in self.SUPER_ROLES
 
 
 @receiver(post_save, sender=User)

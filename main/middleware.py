@@ -3,11 +3,13 @@ from django.contrib import messages
 from django.urls import resolve, Resolver404
 
 
-FINANCE_PREFIXES   = ('/finance/',)
-ACADEMIC_PREFIXES  = ('/portal/students/', '/portal/classes/', '/portal/subjects/',
-                      '/portal/grades/', '/portal/reports/')
-MANAGEMENT_PREFIXES = ('/portal/teachers/', '/portal/periods/', '/settings/')
-USER_PREFIXES      = ('/users/',)
+PAYMENT_PREFIXES     = ('/finance/payments/', '/finance/reports/')
+ENROLLMENT_PREFIXES  = ('/finance/enrollments/',)
+ACADEMIC_PREFIXES    = ('/portal/students/', '/portal/classes/', '/portal/subjects/',
+                        '/portal/grades/', '/portal/reports/')
+TEACHER_MGT_PREFIXES = ('/portal/teachers/', '/portal/periods/')
+SETTINGS_PREFIXES    = ('/settings/',)
+USER_PREFIXES        = ('/users/',)
 
 
 def _get_client_ip(request):
@@ -34,11 +36,15 @@ class RoleAccessMiddleware:
 
             denied = False
 
-            if any(path.startswith(p) for p in FINANCE_PREFIXES):
-                denied = not profile.can_manage_finance
+            if any(path.startswith(p) for p in PAYMENT_PREFIXES):
+                denied = not profile.can_manage_payments
+            elif any(path.startswith(p) for p in ENROLLMENT_PREFIXES):
+                denied = not profile.can_manage_enrollments
             elif any(path.startswith(p) for p in ACADEMIC_PREFIXES):
                 denied = not profile.can_manage_academic
-            elif any(path.startswith(p) for p in MANAGEMENT_PREFIXES):
+            elif any(path.startswith(p) for p in TEACHER_MGT_PREFIXES):
+                denied = not profile.can_manage_teachers
+            elif any(path.startswith(p) for p in SETTINGS_PREFIXES):
                 denied = not profile.can_manage_settings
             elif any(path.startswith(p) for p in USER_PREFIXES):
                 denied = not profile.can_manage_users

@@ -91,20 +91,21 @@
                             </option>
                             {% endfor %}
                         </select>
-                        <div class="form-text mt-1">
+                        <div class="form-text mt-1 lh-lg">
                             <span class="badge bg-danger">Admin</span>
-                            <span class="badge bg-dark">Fondateur</span> accès total &nbsp;·&nbsp;
-                            <span class="badge bg-primary">Directeur</span> gestion sans utilisateurs &nbsp;·&nbsp;
-                            <span class="badge bg-success">Éducateur</span> académique &nbsp;·&nbsp;
-                            <span class="badge bg-warning text-dark">Caissier</span> finance
+                            <span class="badge bg-dark">Fondateur</span> accès complet &nbsp;·&nbsp;
+                            <span class="badge bg-primary">Directeur</span> tout sauf gestion utilisateurs &nbsp;·&nbsp;<br>
+                            <span class="badge bg-success">Surveillant</span> académique + inscriptions + enseignants/périodes &nbsp;·&nbsp;
+                            <span class="badge bg-info text-dark">Enseignant</span> saisie notes (classes assignées) &nbsp;·&nbsp;
+                            <span class="badge bg-warning text-dark">Caissier</span> paiements + inscriptions
                         </div>
                     </div>
 
-                    <!-- Éducateur lié (affiché si rôle = éducateur) -->
+                    <!-- Enseignant lié (affiché si rôle = Enseignant) -->
                     <div class="mb-3" id="teacherField" style="display:none;">
-                        <label class="form-label fw-semibold">Éducateur lié</label>
+                        <label class="form-label fw-semibold">Enseignant lié</label>
                         <select name="teacher_id" class="form-select">
-                            <option value="">— Choisir un éducateur —</option>
+                            <option value="">— Choisir un enseignant —</option>
                             {% for teacher in teachers %}
                             <option value="{{ teacher.pk }}"
                                 {% if action == 'edit' and profile and profile.teacher_id == teacher.pk %}
@@ -114,7 +115,7 @@
                             </option>
                             {% endfor %}
                         </select>
-                        <div class="form-text">Permet de restreindre l'accès aux classes et notes de cet éducateur.</div>
+                        <div class="form-text">Restreint l'accès aux notes des classes de cet enseignant uniquement.</div>
                     </div>
 
                     <!-- Mot de passe (création uniquement) -->
@@ -186,13 +187,13 @@ if (togglePwdBtn) {
     });
 }
 
-// Afficher le champ éducateur seulement si rôle = educator
+// Afficher le champ enseignant lié seulement si rôle = teacher (Enseignant)
 var roleSelect   = document.getElementById('roleSelect');
 var teacherField = document.getElementById('teacherField');
 
 function toggleTeacherField() {
     if (teacherField) {
-        teacherField.style.display = (roleSelect.value === 'educator') ? '' : 'none';
+        teacherField.style.display = (roleSelect.value === 'teacher') ? '' : 'none';
     }
 }
 

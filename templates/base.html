@@ -39,7 +39,7 @@
                 <span>Dashboard</span>
             </a>
 
-            <!-- Groupe Académique (visible : admin, director, teacher) -->
+            <!-- Groupe Académique -->
             {% if can_manage_academic %}
             <div class="nav-group collapsed">
                 <button class="nav-section-title nav-group-toggle" type="button">
@@ -50,6 +50,7 @@
                     <i class="fas fa-chevron-right nav-group-arrow"></i>
                 </button>
                 <div class="nav-group-items">
+                    {% if user_role != 'teacher' %}
                     <a href="{% url 'students_list' %}" class="nav-item {% if 'students' in request.path %}active{% endif %}">
                         <i class="fas fa-user-graduate"></i>
                         <span>Élèves</span>
@@ -62,20 +63,23 @@
                         <i class="fas fa-book-open"></i>
                         <span>Matières</span>
                     </a>
+                    {% endif %}
                     <a href="{% url 'grades_list' %}" class="nav-item {% if 'grades' in request.path %}active{% endif %}">
                         <i class="fas fa-clipboard-list"></i>
                         <span>Notes</span>
                     </a>
+                    {% if user_role != 'teacher' %}
                     <a href="{% url 'reports_list' %}" class="nav-item {% if 'reports' in request.path %}active{% endif %}">
                         <i class="fas fa-file-alt"></i>
                         <span>Bulletins</span>
                     </a>
+                    {% endif %}
                 </div>
             </div>
             {% endif %}
 
-            <!-- Groupe Finance (visible : admin, director, accountant) -->
-            {% if can_manage_finance %}
+            <!-- Groupe Finance -->
+            {% if can_manage_payments or can_manage_enrollments %}
             <div class="nav-group collapsed">
                 <button class="nav-section-title nav-group-toggle" type="button">
                     <div class="nav-group-title-content">
@@ -85,24 +89,30 @@
                     <i class="fas fa-chevron-right nav-group-arrow"></i>
                 </button>
                 <div class="nav-group-items">
+                    {% if can_manage_payments %}
                     <a href="{% url 'payments_list' %}" class="nav-item {% if 'payments' in request.path %}active{% endif %}">
                         <i class="fas fa-money-bill-wave"></i>
                         <span>Paiements</span>
                     </a>
+                    {% endif %}
+                    {% if can_manage_enrollments %}
                     <a href="{% url 'enrollments_list' %}" class="nav-item {% if 'enrollments' in request.path %}active{% endif %}">
                         <i class="fas fa-user-plus"></i>
                         <span>Inscriptions</span>
                     </a>
+                    {% endif %}
+                    {% if can_manage_payments %}
                     <a href="{% url 'finance_reports' %}" class="nav-item {% if 'finance-reports' in request.path %}active{% endif %}">
                         <i class="fas fa-chart-line"></i>
                         <span>Rapports</span>
                     </a>
+                    {% endif %}
                 </div>
             </div>
             {% endif %}
 
-            <!-- Groupe Administration (visible : admin, director) -->
-            {% if can_manage_settings %}
+            <!-- Groupe Administration -->
+            {% if can_manage_teachers or can_manage_settings or can_manage_users %}
             <div class="nav-group collapsed">
                 <button class="nav-section-title nav-group-toggle" type="button">
                     <div class="nav-group-title-content">
@@ -112,6 +122,7 @@
                     <i class="fas fa-chevron-right nav-group-arrow"></i>
                 </button>
                 <div class="nav-group-items">
+                    {% if can_manage_teachers %}
                     <a href="{% url 'teachers_list' %}" class="nav-item {% if 'teachers' in request.path %}active{% endif %}">
                         <i class="fas fa-chalkboard-teacher"></i>
                         <span>Enseignants</span>
@@ -120,10 +131,13 @@
                         <i class="fas fa-calendar-alt"></i>
                         <span>Périodes</span>
                     </a>
+                    {% endif %}
+                    {% if can_manage_settings %}
                     <a href="{% url 'settings' %}" class="nav-item {% if 'settings' in request.path %}active{% endif %}">
                         <i class="fas fa-cog"></i>
                         <span>Paramètres</span>
                     </a>
+                    {% endif %}
                     {% if can_manage_users %}
                     <a href="{% url 'users_list' %}" class="nav-item {% if 'users' in request.path %}active{% endif %}">
                         <i class="fas fa-users-cog"></i>
