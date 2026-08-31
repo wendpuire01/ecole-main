@@ -39,66 +39,104 @@
                 <span>Dashboard</span>
             </a>
 
-            <div class="nav-section-title">Académique</div>
+            <!-- Groupe Académique (visible : admin, director, teacher) -->
+            {% if can_manage_academic %}
+            <div class="nav-group collapsed">
+                <button class="nav-section-title nav-group-toggle" type="button">
+                    <div class="nav-group-title-content">
+                        <i class="fas fa-graduation-cap"></i>
+                        <span>Académique</span>
+                    </div>
+                    <i class="fas fa-chevron-right nav-group-arrow"></i>
+                </button>
+                <div class="nav-group-items">
+                    <a href="{% url 'students_list' %}" class="nav-item {% if 'students' in request.path %}active{% endif %}">
+                        <i class="fas fa-user-graduate"></i>
+                        <span>Élèves</span>
+                    </a>
+                    <a href="{% url 'classes_list' %}" class="nav-item {% if 'classes' in request.path %}active{% endif %}">
+                        <i class="fas fa-chalkboard-user"></i>
+                        <span>Classes</span>
+                    </a>
+                    <a href="{% url 'subjects_list' %}" class="nav-item {% if 'subjects' in request.path %}active{% endif %}">
+                        <i class="fas fa-book-open"></i>
+                        <span>Matières</span>
+                    </a>
+                    <a href="{% url 'grades_list' %}" class="nav-item {% if 'grades' in request.path %}active{% endif %}">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>Notes</span>
+                    </a>
+                    <a href="{% url 'reports_list' %}" class="nav-item {% if 'reports' in request.path %}active{% endif %}">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Bulletins</span>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
 
-            <a href="{% url 'students_list' %}" class="nav-item {% if 'students' in request.path %}active{% endif %}">
-                <i class="fas fa-user-graduate"></i>
-                <span>Élèves</span>
-            </a>
+            <!-- Groupe Finance (visible : admin, director, accountant) -->
+            {% if can_manage_finance %}
+            <div class="nav-group collapsed">
+                <button class="nav-section-title nav-group-toggle" type="button">
+                    <div class="nav-group-title-content">
+                        <i class="fas fa-coins"></i>
+                        <span>Finance</span>
+                    </div>
+                    <i class="fas fa-chevron-right nav-group-arrow"></i>
+                </button>
+                <div class="nav-group-items">
+                    <a href="{% url 'payments_list' %}" class="nav-item {% if 'payments' in request.path %}active{% endif %}">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <span>Paiements</span>
+                    </a>
+                    <a href="{% url 'enrollments_list' %}" class="nav-item {% if 'enrollments' in request.path %}active{% endif %}">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Inscriptions</span>
+                    </a>
+                    <a href="{% url 'finance_reports' %}" class="nav-item {% if 'finance-reports' in request.path %}active{% endif %}">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Rapports</span>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
 
-            <a href="{% url 'classes_list' %}" class="nav-item {% if 'classes' in request.path %}active{% endif %}">
-                <i class="fas fa-chalkboard-user"></i>
-                <span>Classes</span>
-            </a>
-
-            <a href="{% url 'subjects_list' %}" class="nav-item {% if 'subjects' in request.path %}active{% endif %}">
-                <i class="fas fa-book-open"></i>
-                <span>Matières</span>
-            </a>
-
-            <a href="{% url 'grades_list' %}" class="nav-item {% if 'grades' in request.path %}active{% endif %}">
-                <i class="fas fa-clipboard-list"></i>
-                <span>Notes</span>
-            </a>
-
-            <a href="{% url 'reports_list' %}" class="nav-item {% if 'reports' in request.path %}active{% endif %}">
-                <i class="fas fa-file-alt"></i>
-                <span>Bulletins</span>
-            </a>
-
-            <div class="nav-section-title">Finance</div>
-
-            <a href="{% url 'payments_list' %}" class="nav-item {% if 'payments' in request.path %}active{% endif %}">
-                <i class="fas fa-money-bill-wave"></i>
-                <span>Paiements</span>
-            </a>
-
-            <a href="{% url 'enrollments_list' %}" class="nav-item {% if 'enrollments' in request.path %}active{% endif %}">
-                <i class="fas fa-user-plus"></i>
-                <span>Inscriptions</span>
-            </a>
-
-            <a href="{% url 'finance_reports' %}" class="nav-item {% if 'finance-reports' in request.path %}active{% endif %}">
-                <i class="fas fa-chart-line"></i>
-                <span>Rapports</span>
-            </a>
-
-            <div class="nav-section-title">Administration</div>
-
-            <a href="{% url 'teachers_list' %}" class="nav-item {% if 'teachers' in request.path %}active{% endif %}">
-                <i class="fas fa-chalkboard-teacher"></i>
-                <span>Enseignants</span>
-            </a>
-
-            <a href="{% url 'periods_list' %}" class="nav-item {% if 'periods' in request.path %}active{% endif %}">
-                <i class="fas fa-calendar-alt"></i>
-                <span>Périodes</span>
-            </a>
-
-            <a href="{% url 'settings' %}" class="nav-item {% if 'settings' in request.path %}active{% endif %}">
-                <i class="fas fa-cog"></i>
-                <span>Paramètres</span>
-            </a>
+            <!-- Groupe Administration (visible : admin, director) -->
+            {% if can_manage_settings %}
+            <div class="nav-group collapsed">
+                <button class="nav-section-title nav-group-toggle" type="button">
+                    <div class="nav-group-title-content">
+                        <i class="fas fa-cogs"></i>
+                        <span>Administration</span>
+                    </div>
+                    <i class="fas fa-chevron-right nav-group-arrow"></i>
+                </button>
+                <div class="nav-group-items">
+                    <a href="{% url 'teachers_list' %}" class="nav-item {% if 'teachers' in request.path %}active{% endif %}">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                        <span>Enseignants</span>
+                    </a>
+                    <a href="{% url 'periods_list' %}" class="nav-item {% if 'periods' in request.path %}active{% endif %}">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Périodes</span>
+                    </a>
+                    <a href="{% url 'settings' %}" class="nav-item {% if 'settings' in request.path %}active{% endif %}">
+                        <i class="fas fa-cog"></i>
+                        <span>Paramètres</span>
+                    </a>
+                    {% if can_manage_users %}
+                    <a href="{% url 'users_list' %}" class="nav-item {% if 'users' in request.path %}active{% endif %}">
+                        <i class="fas fa-users-cog"></i>
+                        <span>Utilisateurs</span>
+                    </a>
+                    <a href="{% url 'sessions_list' %}" class="nav-item {% if 'sessions' in request.path %}active{% endif %}">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Sessions</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
         </nav>
 
         <div class="sidebar-footer">
@@ -108,7 +146,9 @@
                 </div>
                 <div class="user-details">
                     <div class="user-name">{{ user.get_full_name|default:user.username }}</div>
-                    <div class="user-role">Administrateur</div>
+                    <div class="user-role">
+                        {% if user_profile %}{{ user_profile.get_role_display }}{% else %}Utilisateur{% endif %}
+                    </div>
                 </div>
             </div>
         </div>
@@ -194,6 +234,32 @@
         </div>
     </div>
 
+    <!-- Modal avertissement expiration de session -->
+    {% if user.is_authenticated %}
+    <div class="modal fade" id="sessionTimeoutModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title"><i class="fas fa-clock me-2"></i>Session bientôt expirée</h5>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <p class="mb-1">Votre session expirera dans</p>
+                    <h2 class="text-warning fw-bold" id="sessionCountdown">05:00</h2>
+                    <p class="text-muted small">Cliquez sur "Prolonger" pour rester connecté.</p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <a href="{% url 'logout' %}" class="btn btn-outline-danger">
+                        <i class="fas fa-sign-out-alt me-1"></i>Déconnexion
+                    </a>
+                    <button type="button" class="btn btn-warning" id="sessionExtendBtn">
+                        <i class="fas fa-redo me-1"></i>Prolonger la session
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Bootstrap JS Bundle -->
     <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
 
@@ -204,6 +270,49 @@
     <script src="{% static 'js/main.js' %}"></script>
 
     {% block extra_js %}{% endblock %}
+
+    {% if user.is_authenticated %}
+    <script>
+    // ===================================
+    // SESSION TIMEOUT WARNING
+    // ===================================
+    (function () {
+        const SESSION_AGE_SEC = {{ request.session.get_expiry_age|default:28800 }};
+        const WARNING_BEFORE  = 300; // avertir 5 min avant
+        let remaining = SESSION_AGE_SEC;
+        let modalShown = false;
+        const modal = new bootstrap.Modal(document.getElementById('sessionTimeoutModal'));
+        const countdown = document.getElementById('sessionCountdown');
+
+        function fmt(sec) {
+            const m = String(Math.floor(sec / 60)).padStart(2, '0');
+            const s = String(sec % 60).padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        setInterval(function () {
+            remaining--;
+            if (remaining <= 0) {
+                window.location.href = "{% url 'logout' %}";
+                return;
+            }
+            if (remaining <= WARNING_BEFORE) {
+                if (!modalShown) { modal.show(); modalShown = true; }
+                countdown.textContent = fmt(remaining);
+            }
+        }, 1000);
+
+        document.getElementById('sessionExtendBtn').addEventListener('click', function () {
+            fetch("{% url 'notifications_api' %}", { credentials: 'same-origin' })
+                .then(() => {
+                    remaining = SESSION_AGE_SEC;
+                    modalShown = false;
+                    modal.hide();
+                });
+        });
+    })();
+    </script>
+    {% endif %}
 
     {% if user.is_authenticated %}
     <script>

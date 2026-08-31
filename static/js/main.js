@@ -32,6 +32,26 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ===================================
+// SIDEBAR ACCORDION
+// ===================================
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-expand the group that contains the active nav item
+    document.querySelectorAll('.nav-group').forEach(function(group) {
+        if (group.querySelector('.nav-item.active')) {
+            group.classList.remove('collapsed');
+        }
+    });
+
+    // Toggle accordion on section title click
+    document.querySelectorAll('.nav-group-toggle').forEach(function(toggle) {
+        toggle.addEventListener('click', function() {
+            const group = this.closest('.nav-group');
+            group.classList.toggle('collapsed');
+        });
+    });
+});
+
+// ===================================
 // AUTO DISMISS ALERTS
 // ===================================
 setTimeout(function() {

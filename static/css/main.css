@@ -126,12 +126,62 @@ body {
 }
 
 .nav-section-title {
-    padding: 1rem 1.5rem 0.5rem;
+    width: 100%;
+    background: none;
+    border: none;
+    text-align: left;
+    padding: 0.875rem 1.5rem 0.5rem;
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: rgba(255, 255, 255, 0.6);
     font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: var(--transition);
+}
+
+.nav-section-title:hover {
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.nav-group-title-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.nav-group-title-content i {
+    font-size: 0.875rem;
+    width: 16px;
+    text-align: center;
+}
+
+.nav-group-arrow {
+    font-size: 0.65rem;
+    transition: transform 0.3s ease;
+    flex-shrink: 0;
+}
+
+.nav-group:not(.collapsed) .nav-group-arrow {
+    transform: rotate(90deg);
+}
+
+.nav-group-items {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.35s ease;
+}
+
+.nav-group:not(.collapsed) .nav-group-items {
+    max-height: 500px;
+}
+
+.nav-group:not(.collapsed) > .nav-section-title {
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .nav-item {
