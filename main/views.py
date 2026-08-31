@@ -1,6 +1,7 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth.models import User
 from django.contrib import messages
 from django.db.models import Count, Sum, Avg, Q
 from django.utils import timezone
@@ -11,7 +12,8 @@ import json
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
-from .models import Anonce, Notification
+from .models import Anonce, Notification, UserProfile
+from .decorators import admin_required, management_required
 from school_portal.models import Student, Class, Teacher, Subject, Mark
 from school_finance.models import Payment, Receipt, AcademicYear
 
@@ -31,11 +33,31 @@ def login_view(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
+        remember_me = request.POST.get('remember_me')
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
+            if not user.is_active:
+                messages.error(request, 'Ce compte est désactivé.')
+                return render(request, 'login.html')
+
             login(request, user)
-            messages.success(request, f'Bienvenue {user.username}!')
+
+            # Session expiry: 30 jours si "remember me", sinon 8 heures
+            if remember_me:
+                request.session.set_expiry(30 * 24 * 3600)
+            else:
+                request.session.set_expiry(8 * 3600)
+
+            # Méta-données de session
+            x_forwarded = request.META.get('HTTP_X_FORWARDED_FOR')
+            ip = x_forwarded.split(',')[0].strip() if x_forwarded else request.META.get('REMOTE_ADDR', '')
+            request.session['login_ip'] = ip
+            request.session['login_ua'] = request.META.get('HTTP_USER_AGENT', '')[:200]
+            request.session['login_time'] = timezone.now().isoformat()
+
+            role_label = user.profile.get_role_display() if hasattr(user, 'profile') else 'Utilisateur'
+            messages.success(request, f'Bienvenue {user.get_full_name() or user.username} ({role_label}) !')
             next_url = request.GET.get('next', 'dashboard')
             return redirect(next_url)
         else:
@@ -235,6 +257,188 @@ def settings_view(request):
         ],
     }
     return render(request, 'settings.html', context)
+
+
+# ===================================
+# GESTION DES UTILISATEURS
+# ===================================
+
+@login_required
+@admin_required
+def users_list(request):
+    users = User.objects.select_related('profile').order_by('username')
+    active_count   = users.filter(is_active=True).count()
+    inactive_count = users.filter(is_active=False).count()
+    return render(request, 'users/list.html', {
+        'users': users,
+        'active_count': active_count,
+        'inactive_count': inactive_count,
+    })
+
+
+@login_required
+@admin_required
+def user_create(request):
+    teachers = Teacher.objects.all().order_by('name')
+    if request.method == 'POST':
+        username   = request.POST.get('username', '').strip()
+        first_name = request.POST.get('first_name', '').strip()
+        last_name  = request.POST.get('last_name', '').strip()
+        email      = request.POST.get('email', '').strip()
+        password   = request.POST.get('password', '')
+        role       = request.POST.get('role', 'admin')
+        teacher_id = request.POST.get('teacher_id') or None
+        phone      = request.POST.get('phone', '').strip()
+
+        if not username or not password:
+            messages.error(request, 'Le nom d\'utilisateur et le mot de passe sont requis.')
+        elif User.objects.filter(username=username).exists():
+            messages.error(request, 'Ce nom d\'utilisateur existe déjà.')
+        else:
+            user = User.objects.create_user(
+                username=username,
+                password=password,
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+            )
+            profile = user.profile
+            profile.role = role
+            profile.phone = phone
+            if teacher_id and role == 'teacher':
+                profile.teacher_id = teacher_id
+            profile.save()
+            messages.success(request, f'Utilisateur « {username} » créé avec succès.')
+            return redirect('users_list')
+
+    return render(request, 'users/form.html', {
+        'action': 'create',
+        'role_choices': UserProfile.ROLE_CHOICES,
+        'teachers': teachers,
+    })
+
+
+@login_required
+@admin_required
+def user_edit(request, pk):
+    target_user = get_object_or_404(User, pk=pk)
+    profile, _ = UserProfile.objects.get_or_create(user=target_user)
+    teachers = Teacher.objects.all().order_by('name')
+
+    if request.method == 'POST':
+        target_user.first_name = request.POST.get('first_name', '').strip()
+        target_user.last_name  = request.POST.get('last_name', '').strip()
+        target_user.email      = request.POST.get('email', '').strip()
+        target_user.is_active  = bool(request.POST.get('is_active'))
+        target_user.save()
+
+        profile.role  = request.POST.get('role', profile.role)
+        profile.phone = request.POST.get('phone', '').strip()
+        teacher_id    = request.POST.get('teacher_id') or None
+        if profile.role == 'teacher' and teacher_id:
+            profile.teacher_id = teacher_id
+        else:
+            profile.teacher = None
+        profile.save()
+
+        messages.success(request, f'Utilisateur « {target_user.username} » mis à jour.')
+        return redirect('users_list')
+
+    return render(request, 'users/form.html', {
+        'action': 'edit',
+        'target_user': target_user,
+        'profile': profile,
+        'role_choices': UserProfile.ROLE_CHOICES,
+        'teachers': teachers,
+    })
+
+
+@login_required
+@admin_required
+@require_POST
+def user_toggle_active(request, pk):
+    target_user = get_object_or_404(User, pk=pk)
+    if target_user == request.user:
+        messages.error(request, 'Vous ne pouvez pas désactiver votre propre compte.')
+    else:
+        target_user.is_active = not target_user.is_active
+        target_user.save()
+        status = 'activé' if target_user.is_active else 'désactivé'
+        messages.success(request, f'Compte « {target_user.username} » {status}.')
+    return redirect('users_list')
+
+
+@login_required
+@admin_required
+def user_change_password(request, pk):
+    target_user = get_object_or_404(User, pk=pk)
+    if request.method == 'POST':
+        new_password = request.POST.get('new_password', '')
+        confirm      = request.POST.get('confirm_password', '')
+        if not new_password or len(new_password) < 6:
+            messages.error(request, 'Le mot de passe doit contenir au moins 6 caractères.')
+        elif new_password != confirm:
+            messages.error(request, 'Les mots de passe ne correspondent pas.')
+        else:
+            target_user.set_password(new_password)
+            target_user.save()
+            messages.success(request, f'Mot de passe de « {target_user.username} » modifié.')
+            return redirect('users_list')
+    return render(request, 'users/change_password.html', {'target_user': target_user})
+
+
+# ===================================
+# GESTION DES SESSIONS
+# ===================================
+
+@login_required
+@admin_required
+def sessions_list(request):
+    from django.contrib.sessions.models import Session
+
+    active_sessions = Session.objects.filter(expire_date__gte=timezone.now()).order_by('-expire_date')
+    session_data = []
+    for session in active_sessions:
+        data = session.get_decoded()
+        user_id = data.get('_auth_user_id')
+        if not user_id:
+            continue
+        try:
+            s_user = User.objects.select_related('profile').get(pk=user_id)
+        except User.DoesNotExist:
+            continue
+
+        login_time_str = data.get('login_time', '')
+        try:
+            import dateutil.parser
+            login_time = dateutil.parser.parse(login_time_str) if login_time_str else None
+        except Exception:
+            login_time = None
+
+        session_data.append({
+            'key':         session.session_key,
+            'user':        s_user,
+            'ip':          data.get('login_ip', '—'),
+            'ua':          data.get('login_ua', '—'),
+            'login_time':  login_time,
+            'expire_date': session.expire_date,
+            'is_current':  session.session_key == request.session.session_key,
+        })
+
+    return render(request, 'sessions/list.html', {'sessions': session_data})
+
+
+@login_required
+@admin_required
+@require_POST
+def session_delete(request, session_key):
+    from django.contrib.sessions.models import Session
+    if session_key == request.session.session_key:
+        messages.error(request, 'Vous ne pouvez pas supprimer votre propre session.')
+    else:
+        Session.objects.filter(session_key=session_key).delete()
+        messages.success(request, 'Session supprimée — utilisateur déconnecté.')
+    return redirect('sessions_list')
 
 
 # ===================================

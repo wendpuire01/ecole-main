@@ -64,6 +64,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'main.middleware.SessionActivityMiddleware',
+    'main.middleware.RoleAccessMiddleware',
 ]
 
 ROOT_URLCONF = 'school_manager.urls'
@@ -81,6 +83,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'django.template.context_processors.static',
                 'django.template.context_processors.media',
+                'main.context_processors.user_role',
             ],
         },
     },
@@ -153,6 +156,17 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
+
+# ===================================
+# SESSION CONFIGURATION
+# ===================================
+SESSION_ENGINE             = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE         = 8 * 3600   # 8 heures par défaut
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_COOKIE_HTTPONLY    = True
+SESSION_COOKIE_SAMESITE    = 'Lax'
+SESSION_SAVE_EVERY_REQUEST = True       # Rafraîchit le cookie à chaque requête
+# En production passer SESSION_COOKIE_SECURE = True (requiert HTTPS)
 
 # Date and number formats
 USE_THOUSAND_SEPARATOR = True
