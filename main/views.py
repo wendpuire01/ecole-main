@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.models import User
 from django.contrib import messages
-from django.db.models import Count, Sum, Avg, Q
+from django.db.models import Count, Sum, Avg, Q, Prefetch
 from django.utils import timezone
 from decimal import Decimal
 import datetime
@@ -14,7 +14,7 @@ from django.views.decorators.http import require_POST
 
 from .models import Anonce, Notification, UserProfile
 from .decorators import admin_required, management_required
-from school_portal.models import Student, Class, Teacher, Subject, Mark
+from school_portal.models import Student, Class, Teacher, Subject, Mark, Period, Enrollment, SubjectClass
 from school_finance.models import Payment, Receipt, AcademicYear
 
 
@@ -74,111 +74,212 @@ def logout_view(request):
     return redirect('login')
 
 
+def _month_chart_data(today):
+    labels, amounts = [], []
+    for i in range(5, -1, -1):
+        d = today - datetime.timedelta(days=i * 30)
+        labels.append(d.strftime('%b %Y'))
+        amounts.append(float(
+            Payment.objects.filter(payment_date__year=d.year, payment_date__month=d.month)
+            .aggregate(t=Sum('paid_amount'))['t'] or 0
+        ))
+    return labels, amounts
+
+
+def _classes_overview(qs):
+    out = []
+    for cls in qs:
+        out.append({
+            'id': cls.id,
+            'name': cls.name,
+            'teacher': f"{cls.teacher.name} {cls.teacher.first_name}" if cls.teacher else '—',
+            'students_count': cls.students.count(),
+            'subjects_count': cls.subject_set.count(),
+        })
+    return out
+
+
 @login_required
 def dashboard(request):
     today = timezone.now().date()
-    active_year = AcademicYear.objects.filter(is_active=True).first()
-
-    # --- Compteurs généraux ---
-    total_students = Student.objects.count()
-    total_classes = Class.objects.count()
-    total_teachers = Teacher.objects.count()
-
-    # Nouveaux élèves ce mois
     month_start = today.replace(day=1)
-    new_students_month = Student.objects.filter(
-        created_at__date__gte=month_start
-    ).count() if hasattr(Student, 'created_at') else 0
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    announcements = Anonce.objects.order_by('-create_at')[:5]
 
-    # --- Statistiques financières (année active) ---
+    try:
+        profile = request.user.profile
+    except Exception:
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+
+    role = profile.role
+
+    # ── ENSEIGNANT ────────────────────────────────────────────────────
+    if role == 'teacher':
+        linked_teacher = profile.teacher
+        active_period = Period.objects.filter(is_active=True).first()
+        my_classes, my_subjects, recent_marks = [], [], []
+        marks_count = 0
+
+        if linked_teacher:
+            my_classes = list(
+                Class.objects.filter(
+                    Q(teacher=linked_teacher) | Q(subject_classes__teacher=linked_teacher)
+                ).distinct().prefetch_related('students')
+            )
+            my_subjects = list(
+                Subject.objects.filter(
+                    Q(teacher=linked_teacher) | Q(subject_classes__teacher=linked_teacher)
+                ).distinct()
+            )
+            recent_marks = list(
+                Mark.objects.filter(
+                    Q(assignment__subject__teacher=linked_teacher) |
+                    Q(assignment__subject__subject_classes__teacher=linked_teacher)
+                ).distinct()
+                .select_related('student', 'assignment__subject', 'assignment__period')
+                .order_by('-created_at')[:10]
+            )
+            marks_count = Mark.objects.filter(
+                Q(assignment__subject__teacher=linked_teacher) |
+                Q(assignment__subject__subject_classes__teacher=linked_teacher)
+            ).distinct().count()
+
+        return render(request, 'dashboard.html', {
+            'role': role,
+            'linked_teacher': linked_teacher,
+            'active_period': active_period,
+            'my_classes': my_classes,
+            'my_subjects': my_subjects,
+            'recent_marks': recent_marks,
+            'my_classes_count': len(my_classes),
+            'my_subjects_count': len(my_subjects),
+            'marks_count': marks_count,
+            'announcements': announcements,
+        })
+
+    # ── SURVEILLANT ───────────────────────────────────────────────────
+    if role == 'educator':
+        total_students = Student.objects.count()
+        total_classes = Class.objects.count()
+        total_teachers = Teacher.objects.count()
+        new_enrollments_month = Enrollment.objects.filter(enrollment_date__gte=month_start).count()
+        recent_enrollments = (
+            Enrollment.objects
+            .select_related('student', 'classe')
+            .order_by('-enrollment_date', '-created_at')[:10]
+        )
+        classes = _classes_overview(
+            Class.objects.prefetch_related('students').order_by('name')[:8]
+        )
+        return render(request, 'dashboard.html', {
+            'role': role,
+            'total_students': total_students,
+            'total_classes': total_classes,
+            'total_teachers': total_teachers,
+            'new_enrollments_month': new_enrollments_month,
+            'recent_enrollments': recent_enrollments,
+            'classes': classes,
+            'announcements': announcements,
+        })
+
+    # ── CAISSIER ──────────────────────────────────────────────────────
+    if role == 'cashier':
+        payments_qs = Payment.objects.all()
+        if active_year:
+            payments_qs = payments_qs.filter(academic_year=active_year)
+        stats = payments_qs.aggregate(
+            total_received=Sum('paid_amount'),
+            total_due=Sum('total_amount'),
+        )
+        total_received  = stats['total_received'] or Decimal('0')
+        total_remaining = (stats['total_due'] or Decimal('0')) - total_received
+        pending_count   = payments_qs.filter(status__in=['pending', 'partial']).count()
+        monthly_received = payments_qs.filter(
+            payment_date__gte=month_start
+        ).aggregate(t=Sum('paid_amount'))['t'] or Decimal('0')
+        enrollments_month = Enrollment.objects.filter(enrollment_date__gte=month_start).count()
+
+        recent_payments = (
+            Payment.objects
+            .select_related('student', 'fee_type', 'payment_method')
+            .order_by('-payment_date', '-created_at')[:10]
+        )
+        recent_receipts = (
+            Receipt.objects
+            .select_related('payment__student', 'payment__fee_type')
+            .order_by('-created_at')[:5]
+        )
+        chart_labels, chart_amounts = _month_chart_data(today)
+
+        return render(request, 'dashboard.html', {
+            'role': role,
+            'active_year': active_year,
+            'total_received': total_received,
+            'total_remaining': total_remaining,
+            'pending_count': pending_count,
+            'monthly_received': monthly_received,
+            'enrollments_month': enrollments_month,
+            'recent_payments': recent_payments,
+            'recent_receipts': recent_receipts,
+            'chart_labels': json.dumps(chart_labels),
+            'chart_amounts': json.dumps(chart_amounts),
+        })
+
+    # ── ADMIN / FONDATEUR / DIRECTEUR ─────────────────────────────────
+    total_students = Student.objects.count()
+    total_classes  = Class.objects.count()
+    total_teachers = Teacher.objects.count()
+    new_students_month = Student.objects.filter(created_at__date__gte=month_start).count()
+
     payments_qs = Payment.objects.all()
     if active_year:
         payments_qs = payments_qs.filter(academic_year=active_year)
-
-    finance_stats = payments_qs.aggregate(
+    stats = payments_qs.aggregate(
         total_received=Sum('paid_amount'),
         total_due=Sum('total_amount'),
     )
-    total_received = finance_stats['total_received'] or Decimal('0')
-    total_due = finance_stats['total_due'] or Decimal('0')
+    total_received  = stats['total_received'] or Decimal('0')
+    total_due       = stats['total_due'] or Decimal('0')
     total_remaining = total_due - total_received
-
-    pending_count = payments_qs.filter(status__in=['pending', 'partial']).count()
-
-    # Encaissements du mois en cours
+    pending_count   = payments_qs.filter(status__in=['pending', 'partial']).count()
     monthly_received = payments_qs.filter(
         payment_date__gte=month_start
-    ).aggregate(total=Sum('paid_amount'))['total'] or Decimal('0')
+    ).aggregate(t=Sum('paid_amount'))['t'] or Decimal('0')
 
-    # --- Paiements récents ---
     recent_payments = (
         Payment.objects
         .select_related('student', 'fee_type', 'payment_method')
         .order_by('-payment_date', '-created_at')[:8]
     )
-
-    # --- Activités récentes (reçus + inscriptions) ---
     recent_receipts = (
         Receipt.objects
         .select_related('payment__student', 'payment__fee_type')
         .order_by('-created_at')[:5]
     )
+    chart_labels, chart_amounts = _month_chart_data(today)
+    classes = _classes_overview(
+        Class.objects.prefetch_related('students').order_by('name')[:6]
+    )
 
-    # --- Évolution mensuelle (6 derniers mois) ---
-    month_labels = []
-    month_amounts = []
-    for i in range(5, -1, -1):
-        d = today - datetime.timedelta(days=i * 30)
-        label = d.strftime('%b %Y')
-        amount = float(
-            Payment.objects.filter(
-                payment_date__year=d.year,
-                payment_date__month=d.month,
-            ).aggregate(t=Sum('paid_amount'))['t'] or 0
-        )
-        month_labels.append(label)
-        month_amounts.append(amount)
-
-    # --- Classes avec stats ---
-    classes = []
-    for cls in Class.objects.prefetch_related('students', 'subject_set').order_by('name')[:6]:
-        students_count = cls.students.count()
-        subjects_count = cls.subject_set.count()
-        classes.append({
-            'id': cls.id,
-            'name': cls.name,
-            'teacher': cls.teacher.name if hasattr(cls, 'teacher') and cls.teacher else '—',
-            'students_count': students_count,
-            'subjects_count': subjects_count,
-        })
-
-    # --- Annonces ---
-    announcements = Anonce.objects.order_by('-create_at')[:5]
-
-    context = {
-        # Compteurs
+    return render(request, 'dashboard.html', {
+        'role': role,
+        'active_year': active_year,
         'total_students': total_students,
         'total_classes': total_classes,
         'total_teachers': total_teachers,
         'new_students_month': new_students_month,
-        # Finance
         'total_received': total_received,
         'total_due': total_due,
         'total_remaining': total_remaining,
         'pending_count': pending_count,
         'monthly_received': monthly_received,
-        'active_year': active_year,
-        # Listes
         'recent_payments': recent_payments,
         'recent_receipts': recent_receipts,
         'classes': classes,
         'announcements': announcements,
-        # Chart
-        'chart_labels': json.dumps(month_labels),
-        'chart_amounts': json.dumps(month_amounts),
-    }
-
-    return render(request, 'dashboard.html', context)
+        'chart_labels': json.dumps(chart_labels),
+        'chart_amounts': json.dumps(chart_amounts),
+    })
 
 
 @login_required
