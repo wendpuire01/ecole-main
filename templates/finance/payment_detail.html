@@ -247,9 +247,9 @@
                         <input type="date" class="form-control" name="payment_date" value="{{ today }}" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Reçu par</label>
-                        <input type="text" class="form-control" name="received_by"
-                               value="{{ request.user.get_full_name }}">
+                        <label class="form-label">Caissier</label>
+                        <input type="text" class="form-control bg-light" readonly
+                               value="{{ request.user.get_full_name|default:request.user.username }}">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">N° Référence</label>

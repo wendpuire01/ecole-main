@@ -103,9 +103,9 @@ def payment_create(request):
             paid_amount = Decimal(request.POST.get('paid_amount', '0'))
             payment_date = request.POST.get('payment_date')
             period = request.POST.get('period', '')
-            received_by = request.POST.get('received_by', '')
             reference = request.POST.get('reference', '')
             notes = request.POST.get('notes', '')
+            cashier_name = request.user.get_full_name() or request.user.username
 
             if paid_amount > total_amount:
                 messages.error(request, 'Le montant versé ne peut pas dépasser le montant total.')
@@ -121,7 +121,7 @@ def payment_create(request):
                 payment_date=payment_date,
                 period=period,
                 reference_number=reference,
-                received_by=received_by,
+                received_by=cashier_name,
                 notes=notes,
             )
 
@@ -132,7 +132,7 @@ def payment_create(request):
                 payment_date=payment_date,
                 payment_method=payment_method,
                 reference_number=reference,
-                received_by=received_by,
+                received_by=cashier_name,
             )
 
             receipt = Receipt.objects.create(
@@ -172,7 +172,7 @@ def payment_detail(request, pk):
         Payment.objects.select_related('student', 'fee_type', 'academic_year', 'payment_method'),
         pk=pk
     )
-    installments = payment.installments.select_related('payment_method', 'receipts').order_by('installment_number')
+    installments = payment.installments.select_related('payment_method').prefetch_related('receipts').order_by('installment_number')
     receipts = payment.receipts.order_by('-issue_date')
 
     school = SchoolSettings.objects.first()
@@ -198,7 +198,6 @@ def add_installment(request, pk):
             payment_method = get_object_or_404(PaymentMethod, pk=request.POST.get('payment_method'))
             payment_date = request.POST.get('payment_date')
             reference = request.POST.get('reference', '')
-            received_by = request.POST.get('received_by', '')
             notes = request.POST.get('notes', '')
 
             remaining = payment.remaining_amount
@@ -214,7 +213,7 @@ def add_installment(request, pk):
                 payment_date=payment_date,
                 payment_method=payment_method,
                 reference_number=reference,
-                received_by=received_by,
+                received_by=request.user.get_full_name() or request.user.username,
                 notes=notes,
             )
 
@@ -244,7 +243,7 @@ def payment_edit(request, pk):
     if request.method == 'POST':
         try:
             payment.notes = request.POST.get('notes', '')
-            payment.received_by = request.POST.get('received_by', '')
+            payment.received_by = request.user.get_full_name() or request.user.username
             payment.reference_number = request.POST.get('reference', '')
             payment.save()
             messages.success(request, 'Paiement modifié avec succès')

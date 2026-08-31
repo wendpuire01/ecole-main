@@ -140,11 +140,11 @@
                                    value="{{ today }}" required>
                         </div>
 
-                        <!-- Reçu par -->
+                        <!-- Caissier (automatique) -->
                         <div class="col-md-6">
-                            <label class="form-label">Reçu par</label>
-                            <input type="text" class="form-control" name="received_by"
-                                   value="{{ request.user.get_full_name }}" placeholder="Nom du caissier">
+                            <label class="form-label">Caissier</label>
+                            <input type="text" class="form-control bg-light" readonly
+                                   value="{{ request.user.get_full_name|default:request.user.username }}">
                         </div>
 
                         <!-- Référence -->
