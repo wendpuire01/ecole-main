@@ -4,136 +4,199 @@
 {% block title %}{% if action == 'create' %}Nouvel utilisateur{% else %}Modifier {{ target_user.username }}{% endif %}{% endblock %}
 
 {% block content %}
-<div class="page-header mb-4">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'users_list' %}">Utilisateurs</a></li>
-            <li class="breadcrumb-item active">
-                {% if action == 'create' %}Créer{% else %}Modifier{% endif %}
-            </li>
-        </ol>
-    </nav>
-    <h1 class="page-title">
-        <i class="fas fa-{% if action == 'create' %}user-plus{% else %}user-edit{% endif %} me-2"></i>
-        {% if action == 'create' %}Nouvel utilisateur{% else %}Modifier {{ target_user.username }}{% endif %}
-    </h1>
+
+<!-- En-tête -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{% url 'users_list' %}">Utilisateurs</a></li>
+                <li class="breadcrumb-item active">{% if action == 'create' %}Créer{% else %}Modifier{% endif %}</li>
+            </ol>
+        </nav>
+        <h1 class="h3 mb-0">
+            {% if action == 'create' %}
+                <i class="fas fa-user-plus me-2 text-primary"></i>Nouvel utilisateur
+            {% else %}
+                <i class="fas fa-user-pen me-2 text-primary"></i>Modifier — {{ target_user.username }}
+            {% endif %}
+        </h1>
+    </div>
+    <a href="{% url 'users_list' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>Retour
+    </a>
 </div>
 
 <div class="row justify-content-center">
-    <div class="col-lg-7">
+    <div class="col-lg-7 col-md-10">
         <div class="card border-0 shadow-sm">
             <div class="card-body p-4">
                 <form method="post" novalidate>
                     {% csrf_token %}
 
+                    <!-- Nom d'utilisateur (création uniquement) -->
                     {% if action == 'create' %}
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Nom d'utilisateur <span class="text-danger">*</span></label>
+                        <label class="form-label fw-semibold">
+                            Nom d'utilisateur <span class="text-danger">*</span>
+                        </label>
                         <input type="text" name="username" class="form-control" required
-                               value="{{ request.POST.username|default:'' }}" autocomplete="off">
+                               value="{{ request.POST.username }}" autocomplete="off"
+                               placeholder="ex : jean.dupont">
                     </div>
                     {% endif %}
 
+                    <!-- Prénom / Nom -->
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Prénom</label>
                             <input type="text" name="first_name" class="form-control"
-                                   value="{{ request.POST.first_name|default:target_user.first_name|default:'' }}">
+                                   value="{% if action == 'edit' and target_user %}{{ target_user.first_name }}{% else %}{{ request.POST.first_name }}{% endif %}">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Nom</label>
                             <input type="text" name="last_name" class="form-control"
-                                   value="{{ request.POST.last_name|default:target_user.last_name|default:'' }}">
+                                   value="{% if action == 'edit' and target_user %}{{ target_user.last_name }}{% else %}{{ request.POST.last_name }}{% endif %}">
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Email</label>
-                        <input type="email" name="email" class="form-control"
-                               value="{{ request.POST.email|default:target_user.email|default:'' }}">
+                    <!-- Email / Téléphone -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Email</label>
+                            <input type="email" name="email" class="form-control"
+                                   value="{% if action == 'edit' and target_user %}{{ target_user.email }}{% else %}{{ request.POST.email }}{% endif %}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Téléphone</label>
+                            <input type="text" name="phone" class="form-control"
+                                   value="{% if action == 'edit' and profile %}{{ profile.phone }}{% else %}{{ request.POST.phone }}{% endif %}">
+                        </div>
                     </div>
 
+                    <!-- Rôle -->
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Téléphone</label>
-                        <input type="text" name="phone" class="form-control"
-                               value="{{ request.POST.phone|default:profile.phone|default:'' }}">
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Rôle <span class="text-danger">*</span></label>
+                        <label class="form-label fw-semibold">
+                            Rôle <span class="text-danger">*</span>
+                        </label>
                         <select name="role" id="roleSelect" class="form-select" required>
                             {% for val, label in role_choices %}
                             <option value="{{ val }}"
-                                {% if request.POST.role == val or profile.role == val %}selected{% endif %}>
+                                {% if action == 'edit' and profile %}
+                                    {% if profile.role == val %}selected{% endif %}
+                                {% else %}
+                                    {% if request.POST.role == val %}selected{% endif %}
+                                {% endif %}>
                                 {{ label }}
                             </option>
                             {% endfor %}
                         </select>
-                        <div class="form-text">
-                            <span class="badge bg-danger me-1">Admin</span>
-                            <span class="badge bg-dark me-1">Fondateur</span> accès total ·
-                            <span class="badge bg-primary me-1">Directeur</span> gestion sans utilisateurs ·
-                            <span class="badge bg-success me-1">Éducateur</span> section académique ·
-                            <span class="badge bg-warning text-dark me-1">Caissier</span> section finance
+                        <div class="form-text mt-1">
+                            <span class="badge bg-danger">Admin</span>
+                            <span class="badge bg-dark">Fondateur</span> accès total &nbsp;·&nbsp;
+                            <span class="badge bg-primary">Directeur</span> gestion sans utilisateurs &nbsp;·&nbsp;
+                            <span class="badge bg-success">Éducateur</span> académique &nbsp;·&nbsp;
+                            <span class="badge bg-warning text-dark">Caissier</span> finance
                         </div>
                     </div>
 
-                    <!-- Lier à un éducateur (visible si rôle = educator) -->
+                    <!-- Éducateur lié (affiché si rôle = éducateur) -->
                     <div class="mb-3" id="teacherField" style="display:none;">
                         <label class="form-label fw-semibold">Éducateur lié</label>
                         <select name="teacher_id" class="form-select">
-                            <option value="">— Choisir un enseignant —</option>
+                            <option value="">— Choisir un éducateur —</option>
                             {% for teacher in teachers %}
                             <option value="{{ teacher.pk }}"
-                                {% if profile.teacher_id == teacher.pk %}selected{% endif %}>
+                                {% if action == 'edit' and profile and profile.teacher_id == teacher.pk %}
+                                    selected
+                                {% endif %}>
                                 {{ teacher.name }} {{ teacher.first_name }}
                             </option>
                             {% endfor %}
                         </select>
-                        <div class="form-text">Permet de filtrer les classes et notes accessibles à cet enseignant.</div>
+                        <div class="form-text">Permet de restreindre l'accès aux classes et notes de cet éducateur.</div>
                     </div>
 
+                    <!-- Mot de passe (création uniquement) -->
                     {% if action == 'create' %}
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Mot de passe <span class="text-danger">*</span></label>
-                        <input type="password" name="password" class="form-control" required
-                               autocomplete="new-password" minlength="6">
+                        <label class="form-label fw-semibold">
+                            Mot de passe <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="password" name="password" id="pwdInput"
+                                   class="form-control" required minlength="6"
+                                   autocomplete="new-password">
+                            <button type="button" class="btn btn-outline-secondary" id="togglePwd">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
                         <div class="form-text">Minimum 6 caractères.</div>
                     </div>
                     {% endif %}
 
-                    {% if action == 'edit' %}
+                    <!-- Statut actif (modification uniquement) -->
+                    {% if action == 'edit' and target_user %}
                     <div class="mb-3">
                         <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" name="is_active" id="isActive"
+                            <input class="form-check-input" type="checkbox"
+                                   name="is_active" id="isActive"
                                    {% if target_user.is_active %}checked{% endif %}>
-                            <label class="form-check-label" for="isActive">Compte actif</label>
+                            <label class="form-check-label fw-semibold" for="isActive">
+                                Compte actif
+                            </label>
                         </div>
                     </div>
                     {% endif %}
 
-                    <div class="d-flex gap-2 pt-2">
+                    <hr class="my-3">
+
+                    <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-save me-1"></i>
-                            {% if action == 'create' %}Créer{% else %}Enregistrer{% endif %}
+                            {% if action == 'create' %}Créer l'utilisateur{% else %}Enregistrer{% endif %}
                         </button>
-                        <a href="{% url 'users_list' %}" class="btn btn-outline-secondary">Annuler</a>
+                        <a href="{% url 'users_list' %}" class="btn btn-outline-secondary">
+                            Annuler
+                        </a>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
-const roleSelect = document.getElementById('roleSelect');
-const teacherField = document.getElementById('teacherField');
-function toggleTeacher() {
-    teacherField.style.display = roleSelect.value === 'educator' ? '' : 'none';
+// Afficher/masquer le mot de passe
+var togglePwdBtn = document.getElementById('togglePwd');
+if (togglePwdBtn) {
+    togglePwdBtn.addEventListener('click', function() {
+        var input = document.getElementById('pwdInput');
+        var icon  = this.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.replace('fa-eye', 'fa-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.replace('fa-eye-slash', 'fa-eye');
+        }
+    });
 }
-roleSelect.addEventListener('change', toggleTeacher);
-toggleTeacher();
+
+// Afficher le champ éducateur seulement si rôle = educator
+var roleSelect   = document.getElementById('roleSelect');
+var teacherField = document.getElementById('teacherField');
+
+function toggleTeacherField() {
+    if (teacherField) {
+        teacherField.style.display = (roleSelect.value === 'educator') ? '' : 'none';
+    }
+}
+
+roleSelect.addEventListener('change', toggleTeacherField);
+toggleTeacherField();
 </script>
 {% endblock %}
