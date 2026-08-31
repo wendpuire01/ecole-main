@@ -171,6 +171,17 @@ def dashboard(request):
         classes = _classes_overview(
             Class.objects.prefetch_related('students').order_by('name')[:8]
         )
+        teachers_with_stats = []
+        for t in Teacher.objects.order_by('name'):
+            t_classes = list(Class.objects.filter(teacher=t).values('id', 'name'))
+            teachers_with_stats.append({
+                'teacher': t,
+                'classes': t_classes,
+                'classes_count': len(t_classes),
+                'subjects_count': Subject.objects.filter(
+                    Q(teacher=t) | Q(subject_classes__teacher=t)
+                ).distinct().count(),
+            })
         return render(request, 'dashboard.html', {
             'role': role,
             'total_students': total_students,
@@ -179,6 +190,7 @@ def dashboard(request):
             'new_enrollments_month': new_enrollments_month,
             'recent_enrollments': recent_enrollments,
             'classes': classes,
+            'teachers_with_stats': teachers_with_stats,
             'announcements': announcements,
         })
 
