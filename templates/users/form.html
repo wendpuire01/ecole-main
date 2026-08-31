@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if action == 'create' %}Nouvel utilisateur{% else %}Modifier {{ target_user.username }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'users_list' %}">Utilisateurs</a></li>
+            <li class="breadcrumb-item active">
+                {% if action == 'create' %}Créer{% else %}Modifier{% endif %}
+            </li>
+        </ol>
+    </nav>
+    <h1 class="page-title">
+        <i class="fas fa-{% if action == 'create' %}user-plus{% else %}user-edit{% endif %} me-2"></i>
+        {% if action == 'create' %}Nouvel utilisateur{% else %}Modifier {{ target_user.username }}{% endif %}
+    </h1>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    {% if action == 'create' %}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nom d'utilisateur <span class="text-danger">*</span></label>
+                        <input type="text" name="username" class="form-control" required
+                               value="{{ request.POST.username|default:'' }}" autocomplete="off">
+                    </div>
+                    {% endif %}
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Prénom</label>
+                            <input type="text" name="first_name" class="form-control"
+                                   value="{{ request.POST.first_name|default:target_user.first_name|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Nom</label>
+                            <input type="text" name="last_name" class="form-control"
+                                   value="{{ request.POST.last_name|default:target_user.last_name|default:'' }}">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Email</label>
+                        <input type="email" name="email" class="form-control"
+                               value="{{ request.POST.email|default:target_user.email|default:'' }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Téléphone</label>
+                        <input type="text" name="phone" class="form-control"
+                               value="{{ request.POST.phone|default:profile.phone|default:'' }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Rôle <span class="text-danger">*</span></label>
+                        <select name="role" id="roleSelect" class="form-select" required>
+                            {% for val, label in role_choices %}
+                            <option value="{{ val }}"
+                                {% if request.POST.role == val or profile.role == val %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">
+                            <span class="badge bg-danger me-1">Admin</span>
+                            <span class="badge bg-dark me-1">Fondateur</span> accès total ·
+                            <span class="badge bg-primary me-1">Directeur</span> gestion sans utilisateurs ·
+                            <span class="badge bg-success me-1">Éducateur</span> section académique ·
+                            <span class="badge bg-warning text-dark me-1">Caissier</span> section finance
+                        </div>
+                    </div>
+
+                    <!-- Lier à un éducateur (visible si rôle = educator) -->
+                    <div class="mb-3" id="teacherField" style="display:none;">
+                        <label class="form-label fw-semibold">Éducateur lié</label>
+                        <select name="teacher_id" class="form-select">
+                            <option value="">— Choisir un enseignant —</option>
+                            {% for teacher in teachers %}
+                            <option value="{{ teacher.pk }}"
+                                {% if profile.teacher_id == teacher.pk %}selected{% endif %}>
+                                {{ teacher.name }} {{ teacher.first_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Permet de filtrer les classes et notes accessibles à cet enseignant.</div>
+                    </div>
+
+                    {% if action == 'create' %}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Mot de passe <span class="text-danger">*</span></label>
+                        <input type="password" name="password" class="form-control" required
+                               autocomplete="new-password" minlength="6">
+                        <div class="form-text">Minimum 6 caractères.</div>
+                    </div>
+                    {% endif %}
+
+                    {% if action == 'edit' %}
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="is_active" id="isActive"
+                                   {% if target_user.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="isActive">Compte actif</label>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex gap-2 pt-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>
+                            {% if action == 'create' %}Créer{% else %}Enregistrer{% endif %}
+                        </button>
+                        <a href="{% url 'users_list' %}" class="btn btn-outline-secondary">Annuler</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const roleSelect = document.getElementById('roleSelect');
+const teacherField = document.getElementById('teacherField');
+function toggleTeacher() {
+    teacherField.style.display = roleSelect.value === 'educator' ? '' : 'none';
+}
+roleSelect.addEventListener('change', toggleTeacher);
+toggleTeacher();
+</script>
+{% endblock %}

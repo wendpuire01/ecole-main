@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Gestion des utilisateurs{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="page-title"><i class="fas fa-users-cog me-2"></i>Utilisateurs</h1>
+        <p class="page-subtitle text-muted">Gérer les comptes et les rôles d'accès</p>
+    </div>
+    <a href="{% url 'user_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Nouvel utilisateur
+    </a>
+</div>
+
+<!-- Stats rapides -->
+<div class="row g-3 mb-4">
+    {% for role_key, role_label in role_stats %}
+    {% endfor %}
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center py-3">
+            <div class="fs-2 fw-bold text-primary">{{ users|length }}</div>
+            <div class="text-muted small">Total utilisateurs</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center py-3">
+            <div class="fs-2 fw-bold text-success">{{ active_count }}</div>
+            <div class="text-muted small">Actifs</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center py-3">
+            <div class="fs-2 fw-bold text-danger">{{ inactive_count }}</div>
+            <div class="text-muted small">Désactivés</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <a href="{% url 'sessions_list' %}" class="card border-0 shadow-sm text-center py-3 text-decoration-none">
+            <div class="fs-2 fw-bold text-warning"><i class="fas fa-shield-alt"></i></div>
+            <div class="text-muted small">Sessions actives</div>
+        </a>
+    </div>
+</div>
+
+<!-- Tableau des utilisateurs -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Utilisateur</th>
+                        <th>Rôle</th>
+                        <th>Email</th>
+                        <th>Statut</th>
+                        <th>Dernière connexion</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for u in users %}
+                <tr>
+                    <td class="ps-4">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="user-icon rounded-circle d-flex align-items-center justify-content-center"
+                                 style="width:40px;height:40px;background:var(--primary);color:white;font-weight:700;">
+                                {{ u.username|first|upper }}
+                            </div>
+                            <div>
+                                <div class="fw-semibold">{{ u.get_full_name|default:u.username }}</div>
+                                <div class="text-muted small">@{{ u.username }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        {% with role=u.profile.role %}
+                        <span class="badge rounded-pill
+                            {% if role == 'admin' %}bg-danger
+                            {% elif role == 'founder' %}bg-dark
+                            {% elif role == 'director' %}bg-primary
+                            {% elif role == 'educator' %}bg-success
+                            {% elif role == 'cashier' %}bg-warning text-dark
+                            {% else %}bg-secondary{% endif %}">
+                            {{ u.profile.get_role_display }}
+                        </span>
+                        {% endwith %}
+                    </td>
+                    <td class="text-muted">{{ u.email|default:"—" }}</td>
+                    <td>
+                        {% if u.is_active %}
+                            <span class="badge bg-success-subtle text-success">Actif</span>
+                        {% else %}
+                            <span class="badge bg-danger-subtle text-danger">Désactivé</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-muted small">
+                        {% if u.last_login %}{{ u.last_login|date:"d/m/Y H:i" }}{% else %}—{% endif %}
+                    </td>
+                    <td class="text-end pe-4">
+                        <div class="d-flex gap-2 justify-content-end">
+                            <a href="{% url 'user_edit' u.pk %}" class="btn btn-sm btn-outline-primary" title="Modifier">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'user_change_password' u.pk %}" class="btn btn-sm btn-outline-secondary" title="Mot de passe">
+                                <i class="fas fa-key"></i>
+                            </a>
+                            {% if u != request.user %}
+                            <form method="post" action="{% url 'user_toggle_active' u.pk %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm {% if u.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
+                                        title="{% if u.is_active %}Désactiver{% else %}Activer{% endif %}"
+                                        onclick="return confirm('{% if u.is_active %}Désactiver ce compte ?{% else %}Activer ce compte ?{% endif %}')">
+                                    <i class="fas fa-{% if u.is_active %}ban{% else %}check{% endif %}"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-5 text-muted">
+                        <i class="fas fa-users fa-2x mb-2 d-block"></i>
+                        Aucun utilisateur trouvé
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
