@@ -8,6 +8,40 @@ from datetime import datetime
 import json
 
 from .models import Student, Class, Teacher, Subject, Mark, Assignment
+from main.decorators import academic_required, teacher_mgmt_required
+
+
+def _teacher_scope(request):
+    """Pour le rôle 'teacher' : retourne (True, mes_classes_qs, mes_matières_qs).
+    Pour tous les autres rôles : retourne (False, None, None)."""
+    try:
+        profile = request.user.profile
+    except Exception:
+        return False, None, None
+    if profile.role != 'teacher':
+        return False, None, None
+    t = profile.teacher
+    if not t:
+        return True, Class.objects.none(), Subject.objects.none()
+    my_cls = Class.objects.filter(
+        Q(teacher=t) | Q(subject_classes__teacher=t)
+    ).distinct()
+    my_sub = Subject.objects.filter(
+        Q(teacher=t) | Q(subject_classes__teacher=t)
+    ).distinct()
+    return True, my_cls, my_sub
+
+
+def _deny_teacher(request, redirect_to='dashboard'):
+    """Bloque un enseignant sur une action d'écriture. Retourne une réponse ou None."""
+    try:
+        role = request.user.profile.role
+    except Exception:
+        role = None
+    if role == 'teacher':
+        messages.error(request, "Les enseignants ne peuvent pas effectuer cette action.")
+        return redirect(redirect_to)
+    return None
 
 
 # ===================================
@@ -15,11 +49,14 @@ from .models import Student, Class, Teacher, Subject, Mark, Assignment
 # ===================================
 
 @login_required
+@academic_required
 def students_list(request):
-    """Liste de tous les étudiants"""
-    students = Student.objects.all().order_by('name')
+    is_teacher, my_classes, _ = _teacher_scope(request)
 
-    # Filtres
+    students = Student.objects.all().order_by('name')
+    if is_teacher:
+        students = students.filter(class__in=my_classes)
+
     search = request.GET.get('search', '')
     class_filter = request.GET.get('class', '')
 
@@ -29,36 +66,45 @@ def students_list(request):
             Q(first_name__icontains=search) |
             Q(surname__icontains=search)
         )
-
     if class_filter:
-        students = students.filter(id=class_filter)  # À adapter selon votre modèle
+        students = students.filter(class__id=class_filter)
 
-    classes = Class.objects.all()
+    classes = my_classes if is_teacher else Class.objects.all()
 
     context = {
         'students': students,
         'classes': classes,
-        'total_students': Student.objects.count(),
+        'total_students': students.count(),
+        'can_write': not is_teacher,
     }
     return render(request, 'students/students_list.html', context)
 
 
 @login_required
+@academic_required
 def student_detail(request, pk):
     """Détails d'un étudiant"""
     student = get_object_or_404(Student, pk=pk)
+    is_teacher, my_classes, _ = _teacher_scope(request)
+    if is_teacher and not student.class_set.filter(id__in=my_classes).exists():
+        messages.error(request, "Vous n'avez pas accès à cet élève.")
+        return redirect('students_list')
     marks = Mark.objects.filter(student=student).select_related('assignment__subject')
-
     context = {
         'student': student,
         'marks': marks,
+        'can_write': not is_teacher,
     }
     return render(request, 'students/student_detail.html', context)
 
 
 @login_required
+@academic_required
 def student_create(request):
     """Créer un nouvel étudiant"""
+    denied = _deny_teacher(request, 'students_list')
+    if denied:
+        return denied
     if request.method == 'POST':
         try:
             # Gérer la date de naissance (optionnelle)
@@ -85,8 +131,12 @@ def student_create(request):
 
 
 @login_required
+@academic_required
 def student_edit(request, pk):
     """Modifier un étudiant"""
+    denied = _deny_teacher(request, 'students_list')
+    if denied:
+        return denied
     student = get_object_or_404(Student, pk=pk)
 
     if request.method == 'POST':
@@ -114,8 +164,12 @@ def student_edit(request, pk):
 
 
 @login_required
+@academic_required
 def student_delete(request, pk):
     """Supprimer un étudiant"""
+    denied = _deny_teacher(request, 'students_list')
+    if denied:
+        return denied
     student = get_object_or_404(Student, pk=pk)
     if request.method == 'POST':
         student.delete()
@@ -129,11 +183,16 @@ def student_delete(request, pk):
 # ===================================
 
 @login_required
+@academic_required
 def classes_list(request):
     """Liste de toutes les classes"""
+    is_teacher, my_classes, _ = _teacher_scope(request)
 
     # Gérer la création depuis la modale
     if request.method == 'POST':
+        denied = _deny_teacher(request, 'classes_list')
+        if denied:
+            return denied
         print("=== DEBUT CREATION CLASSE (depuis modale) ===")
         print("POST data:", request.POST)
 
@@ -176,7 +235,7 @@ def classes_list(request):
             traceback.print_exc()
             messages.error(request, f'Erreur lors de la création: {str(e)}')
 
-    classes_query = Class.objects.all().select_related('teacher')
+    classes_query = (my_classes if is_teacher else Class.objects.all()).select_related('teacher')
 
     # Enrichir avec les statistiques
     classes = []
@@ -213,11 +272,13 @@ def classes_list(request):
         'total_classes': len(classes),
         'total_students': Student.objects.count(),
         'total_teachers': teachers.count(),
+        'can_write': not is_teacher,
     }
     return render(request, 'classes/classes_list.html', context)
 
 
 @login_required
+@teacher_mgmt_required
 def class_create(request):
     """Créer une nouvelle classe avec matières et enseignants"""
     if request.method == 'POST':
@@ -299,8 +360,13 @@ def class_create(request):
 
 
 @login_required
+@academic_required
 def class_detail(request, pk):
     """Détails d'une classe"""
+    is_teacher, my_classes, _ = _teacher_scope(request)
+    if is_teacher and not my_classes.filter(pk=pk).exists():
+        messages.error(request, "Vous n'avez pas accès à cette classe.")
+        return redirect('classes_list')
     class_obj = get_object_or_404(Class, pk=pk)
     students = class_obj.students.all()
     subjects = class_obj.subject_set.all()
@@ -314,6 +380,7 @@ def class_detail(request, pk):
 
 
 @login_required
+@teacher_mgmt_required
 def assign_students(request, pk):
     """Assigner des étudiants à une classe"""
     class_obj = get_object_or_404(Class, pk=pk)
@@ -346,6 +413,7 @@ def assign_students(request, pk):
 
 
 @login_required
+@teacher_mgmt_required
 def class_edit(request, pk):
     """Modifier une classe"""
     class_obj = get_object_or_404(Class, pk=pk)
@@ -415,6 +483,7 @@ def class_edit(request, pk):
 
 
 @login_required
+@teacher_mgmt_required
 def class_delete(request, pk):
     """Supprimer une classe"""
     class_obj = get_object_or_404(Class, pk=pk)
@@ -464,6 +533,7 @@ def class_grades(request, pk):
 # ===================================
 
 @login_required
+@teacher_mgmt_required
 def teachers_list(request):
     """Liste de tous les enseignants"""
     teachers = Teacher.objects.all().annotate(
@@ -479,6 +549,7 @@ def teachers_list(request):
 
 
 @login_required
+@teacher_mgmt_required
 def teacher_create(request):
     """Créer un nouvel enseignant"""
     if request.method == 'POST':
@@ -505,6 +576,7 @@ def teacher_create(request):
 
 
 @login_required
+@teacher_mgmt_required
 def teacher_detail(request, pk):
     """Détails d'un enseignant"""
     teacher = get_object_or_404(Teacher, pk=pk)
@@ -520,6 +592,7 @@ def teacher_detail(request, pk):
 
 
 @login_required
+@teacher_mgmt_required
 def teacher_edit(request, pk):
     """Modifier un enseignant"""
     teacher = get_object_or_404(Teacher, pk=pk)
@@ -549,6 +622,7 @@ def teacher_edit(request, pk):
 
 
 @login_required
+@teacher_mgmt_required
 def teacher_delete(request, pk):
     """Supprimer un enseignant"""
     teacher = get_object_or_404(Teacher, pk=pk)
@@ -579,18 +653,22 @@ def teacher_delete(request, pk):
 # ===================================
 
 @login_required
+@academic_required
 def subjects_list(request):
     """Liste de toutes les matières"""
-    subjects = Subject.objects.all().select_related('teacher')
+    is_teacher, _, my_subjects = _teacher_scope(request)
+    subjects = (my_subjects if is_teacher else Subject.objects.all()).select_related('teacher')
 
     context = {
         'subjects': subjects,
         'total_subjects': subjects.count(),
+        'can_write': not is_teacher,
     }
     return render(request, 'subjects/subjects_list.html', context)
 
 
 @login_required
+@teacher_mgmt_required
 def subject_create(request):
     """Créer une nouvelle matière"""
     if request.method == 'POST':
@@ -610,6 +688,7 @@ def subject_create(request):
 
 
 @login_required
+@teacher_mgmt_required
 def subject_edit(request, pk):
     """Modifier une matière"""
     subject = get_object_or_404(Subject, pk=pk)
@@ -631,6 +710,7 @@ def subject_edit(request, pk):
 
 
 @login_required
+@teacher_mgmt_required
 def subject_delete(request, pk):
     """Supprimer une matière"""
     subject = get_object_or_404(Subject, pk=pk)
@@ -661,13 +741,25 @@ def subject_delete(request, pk):
 # ===================================
 
 @login_required
+@academic_required
 def grades_list(request):
     """Gestion des notes - Saisie groupée par classe et matière"""
+    is_teacher, my_classes, my_subjects = _teacher_scope(request)
 
     # Gérer la saisie groupée des notes
     if request.method == 'POST':
         print("=== DEBUT SAISIE GROUPEE NOTES ===")
-        print("POST data:", request.POST)
+
+        # Vérifier que l'enseignant n'entre des notes que pour ses classes/matières
+        if is_teacher:
+            classe_id_check = request.POST.get('classe')
+            subject_id_check = request.POST.get('subject')
+            if not my_classes.filter(pk=classe_id_check).exists():
+                messages.error(request, "Vous ne pouvez pas saisir des notes pour cette classe.")
+                return redirect('grades_list')
+            if not my_subjects.filter(pk=subject_id_check).exists():
+                messages.error(request, "Vous ne pouvez pas saisir des notes pour cette matière.")
+                return redirect('grades_list')
 
         try:
             classe_id = request.POST.get('classe')
@@ -724,8 +816,8 @@ def grades_list(request):
             traceback.print_exc()
             messages.error(request, f'Erreur lors de la saisie des notes: {str(e)}')
 
-    classes = Class.objects.all()
-    all_subjects = Subject.objects.all()
+    classes = my_classes if is_teacher else Class.objects.all()
+    all_subjects = my_subjects if is_teacher else Subject.objects.all()
 
     selected_class = request.GET.get('class')
     selected_subject = request.GET.get('subject')
@@ -738,7 +830,13 @@ def grades_list(request):
     # Si une classe est sélectionnée, récupérer ses matières et élèves
     if selected_class:
         class_obj = get_object_or_404(Class, pk=selected_class)
+        # Vérifier l'accès pour l'enseignant
+        if is_teacher and not my_classes.filter(pk=selected_class).exists():
+            messages.error(request, "Vous n'avez pas accès à cette classe.")
+            return redirect('grades_list')
         class_subjects = class_obj.subject_set.all()
+        if is_teacher:
+            class_subjects = class_subjects.filter(id__in=my_subjects)
 
         # Si une matière est aussi sélectionnée, afficher les élèves
         if selected_subject:
@@ -869,19 +967,21 @@ def generate_bulletins(request):
 # ===================================
 
 @login_required
+@academic_required
 def reports_list(request):
     """Liste des bulletins avec options d'export"""
-    # Filtres
+    is_teacher, my_classes, _ = _teacher_scope(request)
+
     selected_class = request.GET.get('class')
     search = request.GET.get('search', '')
 
     students = Student.objects.all()
+    if is_teacher:
+        students = students.filter(class__in=my_classes)
 
-    # Filtrer par classe (relation inverse via Class.students)
     if selected_class:
         students = students.filter(class__id=selected_class)
 
-    # Filtrer par recherche
     if search:
         students = students.filter(
             Q(name__icontains=search) |
@@ -891,7 +991,7 @@ def reports_list(request):
 
     students = students.order_by('name', 'first_name')
 
-    classes = Class.objects.all()
+    classes = my_classes if is_teacher else Class.objects.all()
 
     context = {
         'students': students,
