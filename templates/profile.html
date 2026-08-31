@@ -1,200 +1,226 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Mon Profil - Gestion d'École{% endblock %}
+{% block title %}Mon Profil{% endblock %}
 
 {% block content %}
-<div class="profile-page">
-    <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="h2 mb-1">Mon Profil</h1>
-            <p class="text-muted mb-0">Gérer vos informations personnelles</p>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="page-title">Mon Profil</h1>
+        <p class="text-muted mb-0">Informations personnelles et sécurité du compte</p>
+    </div>
+</div>
+
+<div class="row g-4">
+
+    <!-- ══ Colonne gauche : avatar + résumé ══ -->
+    <div class="col-lg-3">
+        <div class="card border-0 shadow-sm text-center p-4 mb-4">
+            <div class="mx-auto mb-3 rounded-circle d-flex align-items-center justify-content-center"
+                 style="width:80px;height:80px;background:var(--primary);font-size:2rem;color:white;font-weight:700;">
+                {{ user.username|first|upper }}
+            </div>
+            <h5 class="fw-bold mb-0">{{ user.get_full_name|default:user.username }}</h5>
+            <p class="text-muted small mb-2">@{{ user.username }}</p>
+
+            {% with role=user_profile.role %}
+            <span class="badge rounded-pill
+                {% if role == 'admin' %}bg-danger
+                {% elif role == 'founder' %}bg-dark
+                {% elif role == 'director' %}bg-primary
+                {% elif role == 'educator' %}bg-success
+                {% elif role == 'cashier' %}bg-warning text-dark
+                {% else %}bg-secondary{% endif %} px-3 py-2">
+                {{ user_profile.get_role_display }}
+            </span>
+            {% endwith %}
+        </div>
+
+        <div class="card border-0 shadow-sm p-3">
+            <div class="small text-muted fw-semibold mb-2 text-uppercase">Infos du compte</div>
+            <ul class="list-unstyled small mb-0">
+                <li class="mb-2">
+                    <i class="fas fa-calendar-alt text-muted me-2"></i>
+                    Membre depuis {{ user.date_joined|date:"M Y" }}
+                </li>
+                <li class="mb-2">
+                    <i class="fas fa-clock text-muted me-2"></i>
+                    Dernière connexion<br>
+                    <span class="ms-4">{{ user.last_login|date:"d/m/Y à H:i"|default:"—" }}</span>
+                </li>
+                <li>
+                    <i class="fas fa-circle text-{% if user.is_active %}success{% else %}danger{% endif %} me-2"></i>
+                    Compte {% if user.is_active %}actif{% else %}désactivé{% endif %}
+                </li>
+            </ul>
         </div>
     </div>
 
-    <div class="row">
-        <!-- Profile Information -->
-        <div class="col-lg-8">
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="fas fa-user me-2"></i>Informations du Compte</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-12">
-                            <label class="form-label fw-bold">Nom d'utilisateur</label>
-                            <input type="text" class="form-control" value="{{ user.username }}" readonly>
+    <!-- ══ Colonne droite : formulaires ══ -->
+    <div class="col-lg-9">
+
+        <!-- ── Modifier les informations ── -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-bottom fw-semibold py-3">
+                <i class="fas fa-user-edit me-2 text-primary"></i>Informations personnelles
+            </div>
+            <div class="card-body p-4">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="edit_profile">
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Nom d'utilisateur</label>
+                            <input type="text" class="form-control bg-light" value="{{ user.username }}" readonly>
+                            <div class="form-text">Non modifiable</div>
                         </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Prénom</label>
-                            <input type="text" class="form-control" value="{{ user.first_name|default:'--' }}" readonly>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Prénom</label>
+                            <input type="text" name="first_name" class="form-control"
+                                   value="{{ user.first_name }}">
                         </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Nom</label>
-                            <input type="text" class="form-control" value="{{ user.last_name|default:'--' }}" readonly>
-                        </div>
-
-                        <div class="col-md-12">
-                            <label class="form-label fw-bold">Email</label>
-                            <input type="email" class="form-control" value="{{ user.email|default:'--' }}" readonly>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Date d'inscription</label>
-                            <input type="text" class="form-control" value="{{ user.date_joined|date:'d/m/Y à H:i' }}" readonly>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Dernière connexion</label>
-                            <input type="text" class="form-control" value="{{ user.last_login|date:'d/m/Y à H:i'|default:'--' }}" readonly>
-                        </div>
-
-                        <div class="col-md-12">
-                            <label class="form-label fw-bold">Statut</label>
-                            <div>
-                                {% if user.is_superuser %}
-                                <span class="badge bg-danger">Super Administrateur</span>
-                                {% elif user.is_staff %}
-                                <span class="badge bg-warning">Administrateur</span>
-                                {% else %}
-                                <span class="badge bg-info">Utilisateur</span>
-                                {% endif %}
-
-                                {% if user.is_active %}
-                                <span class="badge bg-success">Actif</span>
-                                {% else %}
-                                <span class="badge bg-secondary">Inactif</span>
-                                {% endif %}
-                            </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Nom</label>
+                            <input type="text" name="last_name" class="form-control"
+                                   value="{{ user.last_name }}">
                         </div>
                     </div>
 
-                    <hr class="my-4">
-
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-primary" disabled>
-                            <i class="fas fa-edit me-2"></i>Modifier le Profil
-                        </button>
-                        <button type="button" class="btn btn-outline-primary" disabled>
-                            <i class="fas fa-key me-2"></i>Changer le Mot de Passe
-                        </button>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Email</label>
+                            <input type="email" name="email" class="form-control"
+                                   value="{{ user.email }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Téléphone</label>
+                            <input type="text" name="phone" class="form-control"
+                                   value="{{ user_profile.phone }}">
+                        </div>
                     </div>
-                    <small class="text-muted d-block mt-2">
-                        <i class="fas fa-info-circle me-1"></i>La modification du profil sera disponible prochainement
-                    </small>
-                </div>
+
+                    <div class="row g-3 mb-2">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Rôle</label>
+                            <input type="text" class="form-control bg-light"
+                                   value="{{ user_profile.get_role_display }}" readonly>
+                            <div class="form-text">Modifiable uniquement par un administrateur</div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary mt-2">
+                        <i class="fas fa-save me-1"></i>Enregistrer les modifications
+                    </button>
+                </form>
             </div>
         </div>
 
-        <!-- Quick Stats -->
-        <div class="col-lg-4">
-            <!-- User Avatar -->
-            <div class="card mb-4">
-                <div class="card-body text-center">
+        <!-- ── Changer le mot de passe ── -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-bottom fw-semibold py-3">
+                <i class="fas fa-key me-2 text-warning"></i>Changer le mot de passe
+            </div>
+            <div class="card-body p-4">
+                <form method="post" novalidate id="pwdForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="change_password">
+
                     <div class="mb-3">
-                        <i class="fas fa-user-circle fa-5x text-primary"></i>
-                    </div>
-                    <h5 class="mb-1">{{ user.get_full_name|default:user.username }}</h5>
-                    <p class="text-muted mb-0">{{ user.email|default:'Aucun email' }}</p>
-                </div>
-            </div>
-
-            <!-- Account Info -->
-            <div class="card border-info">
-                <div class="card-header bg-info text-white">
-                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Informations</h6>
-                </div>
-                <div class="card-body">
-                    <ul class="list-unstyled mb-0 small">
-                        <li class="mb-2">
-                            <i class="fas fa-check-circle text-success me-2"></i>
-                            Compte vérifié
-                        </li>
-                        <li class="mb-2">
-                            <i class="fas fa-shield-alt text-primary me-2"></i>
-                            Accès sécurisé
-                        </li>
-                        <li class="mb-2">
-                            <i class="fas fa-clock text-muted me-2"></i>
-                            Membre depuis {{ user.date_joined|date:'M Y' }}
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Permissions (for admin users) -->
-    {% if user.is_staff %}
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card border-warning">
-                <div class="card-header bg-warning text-dark">
-                    <h5 class="mb-0"><i class="fas fa-shield-alt me-2"></i>Permissions</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6 class="text-muted mb-3">Accès Administrateur</h6>
-                            <ul class="list-unstyled">
-                                <li class="mb-2">
-                                    <i class="fas fa-check text-success me-2"></i>
-                                    Gestion des Élèves
-                                </li>
-                                <li class="mb-2">
-                                    <i class="fas fa-check text-success me-2"></i>
-                                    Gestion des Classes
-                                </li>
-                                <li class="mb-2">
-                                    <i class="fas fa-check text-success me-2"></i>
-                                    Gestion des Enseignants
-                                </li>
-                                <li class="mb-2">
-                                    <i class="fas fa-check text-success me-2"></i>
-                                    Saisie des Notes
-                                </li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <h6 class="text-muted mb-3">Fonctionnalités Avancées</h6>
-                            <ul class="list-unstyled">
-                                <li class="mb-2">
-                                    <i class="fas fa-check text-success me-2"></i>
-                                    Gestion Financière
-                                </li>
-                                <li class="mb-2">
-                                    <i class="fas fa-check text-success me-2"></i>
-                                    Export des Bulletins
-                                </li>
-                                <li class="mb-2">
-                                    <i class="fas fa-check text-success me-2"></i>
-                                    Paramètres Système
-                                </li>
-                                {% if user.is_superuser %}
-                                <li class="mb-2">
-                                    <i class="fas fa-check text-danger me-2"></i>
-                                    Administration Django
-                                </li>
-                                {% endif %}
-                            </ul>
+                        <label class="form-label fw-semibold">Mot de passe actuel <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="password" name="current_password" id="currentPwd"
+                                   class="form-control" required autocomplete="current-password">
+                            <button type="button" class="btn btn-outline-secondary toggle-pwd" data-target="currentPwd">
+                                <i class="fas fa-eye"></i>
+                            </button>
                         </div>
                     </div>
-                </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Nouveau mot de passe <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="password" name="new_password" id="newPwd"
+                                       class="form-control" required minlength="6" autocomplete="new-password">
+                                <button type="button" class="btn btn-outline-secondary toggle-pwd" data-target="newPwd">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">Minimum 6 caractères</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Confirmer <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="password" name="confirm_password" id="confirmPwd"
+                                       class="form-control" required autocomplete="new-password">
+                                <button type="button" class="btn btn-outline-secondary toggle-pwd" data-target="confirmPwd">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="form-text" id="matchHint"></div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-lock me-1"></i>Changer le mot de passe
+                    </button>
+                </form>
             </div>
         </div>
-    </div>
-    {% endif %}
+
+    </div><!-- /col-lg-9 -->
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// Placeholder for future profile editing functionality
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Profile page loaded for user: {{ user.username }}');
+// Afficher / masquer les mots de passe
+document.querySelectorAll('.toggle-pwd').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var input = document.getElementById(this.dataset.target);
+        var icon  = this.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.replace('fa-eye', 'fa-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.replace('fa-eye-slash', 'fa-eye');
+        }
+    });
+});
+
+// Vérification en temps réel : les deux mots de passe correspondent
+var newPwd     = document.getElementById('newPwd');
+var confirmPwd = document.getElementById('confirmPwd');
+var matchHint  = document.getElementById('matchHint');
+
+function checkMatch() {
+    if (!confirmPwd.value) { matchHint.textContent = ''; return; }
+    if (newPwd.value === confirmPwd.value) {
+        matchHint.textContent = '✓ Les mots de passe correspondent';
+        matchHint.className = 'form-text text-success';
+        confirmPwd.classList.remove('is-invalid');
+        confirmPwd.classList.add('is-valid');
+    } else {
+        matchHint.textContent = '✗ Les mots de passe ne correspondent pas';
+        matchHint.className = 'form-text text-danger';
+        confirmPwd.classList.remove('is-valid');
+        confirmPwd.classList.add('is-invalid');
+    }
+}
+
+newPwd.addEventListener('input', checkMatch);
+confirmPwd.addEventListener('input', checkMatch);
+
+// Bloquer la soumission si les mots de passe ne correspondent pas
+document.getElementById('pwdForm').addEventListener('submit', function(e) {
+    if (newPwd.value && confirmPwd.value && newPwd.value !== confirmPwd.value) {
+        e.preventDefault();
+        matchHint.textContent = '✗ Les mots de passe ne correspondent pas';
+        matchHint.className = 'form-text text-danger';
+        confirmPwd.focus();
+    }
 });
 </script>
 {% endblock %}

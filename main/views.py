@@ -183,11 +183,44 @@ def dashboard(request):
 
 @login_required
 def profile(request):
-    """Profil utilisateur"""
-    context = {
-        'user': request.user,
-    }
-    return render(request, 'profile.html', context)
+    """Profil utilisateur — modification des infos et du mot de passe"""
+    user = request.user
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'edit_profile':
+            user.first_name = request.POST.get('first_name', '').strip()
+            user.last_name  = request.POST.get('last_name', '').strip()
+            user.email      = request.POST.get('email', '').strip()
+            profile.phone   = request.POST.get('phone', '').strip()
+            user.save()
+            profile.save()
+            messages.success(request, 'Profil mis à jour avec succès.')
+
+        elif action == 'change_password':
+            current  = request.POST.get('current_password', '')
+            new_pwd  = request.POST.get('new_password', '')
+            confirm  = request.POST.get('confirm_password', '')
+
+            if not user.check_password(current):
+                messages.error(request, 'Mot de passe actuel incorrect.')
+            elif len(new_pwd) < 6:
+                messages.error(request, 'Le nouveau mot de passe doit contenir au moins 6 caractères.')
+            elif new_pwd != confirm:
+                messages.error(request, 'Les deux nouveaux mots de passe ne correspondent pas.')
+            else:
+                user.set_password(new_pwd)
+                user.save()
+                # Maintenir la session active après changement de mot de passe
+                from django.contrib.auth import update_session_auth_hash
+                update_session_auth_hash(request, user)
+                messages.success(request, 'Mot de passe modifié avec succès.')
+
+        return redirect('profile')
+
+    return render(request, 'profile.html', {'user_profile': profile})
 
 
 @login_required
@@ -302,10 +335,10 @@ def user_create(request):
                 last_name=last_name,
                 email=email,
             )
-            profile = user.profile
+            profile, _ = UserProfile.objects.get_or_create(user=user)
             profile.role = role
             profile.phone = phone
-            if teacher_id and role == 'teacher':
+            if teacher_id and role == 'educator':
                 profile.teacher_id = teacher_id
             profile.save()
             messages.success(request, f'Utilisateur « {username} » créé avec succès.')
@@ -337,7 +370,7 @@ def user_edit(request, pk):
         profile.role  = request.POST.get('role', profile.role)
         profile.phone = request.POST.get('phone', '').strip()
         teacher_id    = request.POST.get('teacher_id') or None
-        if profile.role == 'teacher' and teacher_id:
+        if profile.role == 'educator' and teacher_id:
             profile.teacher_id = teacher_id
         else:
             profile.teacher = None
