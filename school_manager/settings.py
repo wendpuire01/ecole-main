@@ -106,7 +106,7 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 STATICFILES_STORAGE = (
     'django.contrib.staticfiles.storage.StaticFilesStorage'
     if DEBUG else
-    'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    'whitenoise.storage.CompressedStaticFilesStorage'
 )
 
 MEDIA_URL = '/media/'
