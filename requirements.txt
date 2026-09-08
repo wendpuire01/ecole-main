@@ -1,52 +1,52 @@
 # =========================
 # Core Framework
 # =========================
-Django==5.0.6
+Django==5.0.14
 python-decouple==3.8
 
 # =========================
 # Database
 # =========================
-psycopg2-binary==2.9.9
+psycopg2-binary==2.9.12
 
 
 # Forms & Validation
-django-crispy-forms==2.3
+django-crispy-forms==2.5
 crispy-bootstrap5==2024.10
-django-widget-tweaks==1.5.0
+django-widget-tweaks==1.5.1
 
 # =========================
 # PDF Generation & Reports
 # =========================
-reportlab==4.1.0
+reportlab==4.5.1
 weasyprint==61.2
-xhtml2pdf==0.2.13
-pypdf==4.0.1
+xhtml2pdf==0.2.18
+pypdf==4.3.1
 
 # =========================
 # Excel & Data Export
 # =========================
-openpyxl==3.1.2
-xlsxwriter==3.2.0
-django-import-export==3.3.7
+openpyxl==3.1.5
+xlsxwriter==3.2.9
+django-import-export==3.3.9
 
 # =========================
 # Images & Media
 # =========================
-Pillow==10.2.0
+Pillow==10.4.0
 
 # =========================
 # API & Filtering
 # =========================
-djangorestframework==3.14.0
-django-filter==24.1
-django-cors-headers==4.3.1
+djangorestframework==3.16.1
+django-filter==24.3
+django-cors-headers==4.9.0
 
 # =========================
 # Authentication & Security
 # =========================
-django-allauth==0.61.1
-djangorestframework-simplejwt==5.3.1
+django-allauth==0.63.6
+djangorestframework-simplejwt==5.5.1
 
 # =========================
 # UI & Frontend
@@ -68,13 +68,13 @@ python-dateutil==2.9.0
 # Utils
 # =========================
 django-extensions==3.2.3
-django-debug-toolbar==4.3.0
+django-debug-toolbar==4.4.6
 python-slugify==8.0.4
 
 # =========================
 # Payments (optional)
 # =========================
-stripe==8.7.0
+stripe==8.11.0
 
 # =========================
 # Messaging & Notifications
@@ -84,16 +84,16 @@ django-notifications-hq==1.8.3
 # =========================
 # Task Queue (optional)
 # =========================
-celery==5.3.6
-redis==5.0.1
+celery==5.6.3
+redis==5.3.1
 
 # =========================
 # Production Server
 # =========================
 gunicorn==21.2.0
-whitenoise==6.6.0
+whitenoise==6.12.0
 
 # =========================
 # Environment
 # =========================
-python-dotenv==1.0.1
+python-dotenv==1.2.3
