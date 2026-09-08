@@ -161,6 +161,14 @@
                     </div>
                 </div>
                 <div class="card-body">
+                    {% if not class.has_fee %}
+                    <div class="alert alert-warning py-2 px-3 mb-3 small d-flex align-items-center gap-2">
+                        <i class="fas fa-triangle-exclamation"></i>
+                        <span>Frais de scolarité non définis —
+                            <a href="{% url 'class_edit' class.id %}" class="alert-link">à compléter</a>
+                        </span>
+                    </div>
+                    {% endif %}
                     <!-- Teacher Info -->
                     <div class="mb-3">
                         <div class="d-flex align-items-center">
@@ -308,6 +316,15 @@
                             </select>
                             <div class="invalid-feedback">
                                 Veuillez sélectionner un niveau
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Frais de scolarité annuelle (FCFA) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="scolarite_amount" min="0" step="1"
+                                   placeholder="Ex: 150000" required>
+                            <div class="invalid-feedback">
+                                Les frais de scolarité sont obligatoires
                             </div>
                         </div>
 

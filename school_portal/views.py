@@ -32,6 +32,28 @@ def _teacher_scope(request):
     return True, my_cls, my_sub
 
 
+def _save_scolarite_fee(class_obj, amount):
+    """Crée/met à jour la structure de frais de scolarité de la classe pour l'année active.
+    Retourne un message d'avertissement (str) si aucune année scolaire active n'existe, sinon None."""
+    from school_finance.models import AcademicYear, FeeType, FeeStructure
+
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    if not active_year:
+        return "Aucune année scolaire active : les frais de scolarité n'ont pas pu être enregistrés. Configurez une année scolaire active dans Paramètres."
+
+    scolarite_type, _ = FeeType.objects.get_or_create(
+        category='scolarite',
+        defaults={'name': 'Scolarité', 'is_mandatory': True}
+    )
+    FeeStructure.objects.update_or_create(
+        academic_year=active_year,
+        class_level=class_obj,
+        fee_type=scolarite_type,
+        defaults={'amount': amount, 'is_active': True}
+    )
+    return None
+
+
 def _deny_teacher(request, redirect_to='dashboard'):
     """Bloque un enseignant sur une action d'écriture. Retourne une réponse ou None."""
     try:
@@ -200,6 +222,7 @@ def classes_list(request):
             name = request.POST.get('name')
             level = request.POST.get('level')
             teacher_id = request.POST.get('teacher')
+            scolarite_amount = request.POST.get('scolarite_amount')
 
             print(f"Nom: {name}")
             print(f"Niveau: {level}")
@@ -208,6 +231,8 @@ def classes_list(request):
             # Vérifier que les champs obligatoires sont remplis
             if not name or not level:
                 messages.error(request, 'Le nom et le niveau sont obligatoires')
+            elif not scolarite_amount:
+                messages.error(request, 'Les frais de scolarité sont obligatoires')
             else:
                 class_obj = Class.objects.create(
                     name=name,
@@ -216,6 +241,10 @@ def classes_list(request):
                 )
 
                 print(f"Classe créée: {class_obj.id} - {class_obj.name}")
+
+                fee_warning = _save_scolarite_fee(class_obj, scolarite_amount)
+                if fee_warning:
+                    messages.warning(request, fee_warning)
 
                 # Ajouter les matières
                 subjects_ids = request.POST.getlist('subjects')
@@ -236,6 +265,18 @@ def classes_list(request):
             messages.error(request, f'Erreur lors de la création: {str(e)}')
 
     classes_query = (my_classes if is_teacher else Class.objects.all()).select_related('teacher')
+
+    # Classes ayant déjà des frais de scolarité pour l'année active
+    from school_finance.models import AcademicYear, FeeStructure
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    classes_with_fee = set()
+    if active_year:
+        classes_with_fee = set(
+            FeeStructure.objects.filter(
+                academic_year=active_year,
+                fee_type__category='scolarite'
+            ).values_list('class_level_id', flat=True)
+        )
 
     # Enrichir avec les statistiques
     classes = []
@@ -260,6 +301,7 @@ def classes_list(request):
             'subjects_count': subjects_count,
             'average': round(class_average, 2) if class_average else None,
             'main_subjects': [{'short_name': s.name[:4].upper()} for s in main_subjects],
+            'has_fee': class_obj.id in classes_with_fee,
         })
 
     teachers = Teacher.objects.all()
@@ -289,6 +331,7 @@ def class_create(request):
             name = request.POST.get('name')
             level = request.POST.get('level')
             teacher_id = request.POST.get('teacher')
+            scolarite_amount = request.POST.get('scolarite_amount')
 
             print(f"Nom: {name}")
             print(f"Niveau: {level}")
@@ -302,6 +345,13 @@ def class_create(request):
                 context = {'teachers': teachers, 'subjects': subjects}
                 return render(request, 'classes/class_form.html', context)
 
+            if not scolarite_amount:
+                messages.error(request, 'Les frais de scolarité sont obligatoires')
+                teachers = Teacher.objects.all()
+                subjects = Subject.objects.all()
+                context = {'teachers': teachers, 'subjects': subjects}
+                return render(request, 'classes/class_form.html', context)
+
             # Créer la classe
             class_obj = Class.objects.create(
                 name=name,
@@ -310,6 +360,10 @@ def class_create(request):
             )
 
             print(f"Classe créée: {class_obj.id} - {class_obj.name}")
+
+            fee_warning = _save_scolarite_fee(class_obj, scolarite_amount)
+            if fee_warning:
+                messages.warning(request, fee_warning)
 
             # Récupérer les matières, enseignants et coefficients
             subject_ids = request.POST.getlist('subjects[]')
@@ -418,7 +472,10 @@ def class_edit(request, pk):
     """Modifier une classe"""
     class_obj = get_object_or_404(Class, pk=pk)
 
-    if request.method == 'POST':
+    if request.method == 'POST' and not request.POST.get('scolarite_amount'):
+        messages.error(request, 'Les frais de scolarité sont obligatoires')
+    elif request.method == 'POST':
+        scolarite_amount = request.POST.get('scolarite_amount')
         try:
             # Mettre à jour les informations de base
             class_obj.name = request.POST.get('name')
@@ -426,6 +483,10 @@ def class_edit(request, pk):
             teacher_id = request.POST.get('teacher')
             class_obj.teacher_id = teacher_id if teacher_id else None
             class_obj.save()
+
+            fee_warning = _save_scolarite_fee(class_obj, scolarite_amount)
+            if fee_warning:
+                messages.warning(request, fee_warning)
 
             # Importer le modèle SubjectClass
             from .models import SubjectClass
@@ -472,12 +533,26 @@ def class_edit(request, pk):
     from .models import SubjectClass
     subject_classes = SubjectClass.objects.filter(classe=class_obj).select_related('subject', 'teacher')
 
+    # Frais de scolarité actuels (année active), pour pré-remplir le champ
+    from school_finance.models import AcademicYear, FeeStructure
+    current_fee_amount = None
+    active_year = AcademicYear.objects.filter(is_active=True).first()
+    if active_year:
+        fee_structure = FeeStructure.objects.filter(
+            academic_year=active_year,
+            class_level=class_obj,
+            fee_type__category='scolarite'
+        ).first()
+        if fee_structure:
+            current_fee_amount = fee_structure.amount
+
     context = {
         'class': class_obj,
         'teachers': teachers,
         'subjects': subjects,
         'subject_classes': subject_classes,
         'is_edit': True,
+        'current_fee_amount': current_fee_amount,
     }
     return render(request, 'classes/class_form.html', context)
 

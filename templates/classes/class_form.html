@@ -62,6 +62,14 @@
                                 </select>
                             </div>
 
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Frais de scolarité annuelle (FCFA) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" name="scolarite_amount" min="0" step="1"
+                                       value="{% if current_fee_amount is not None %}{{ current_fee_amount|floatformat:0 }}{% endif %}"
+                                       placeholder="Ex: 150000" required>
+                                <small class="text-muted">Obligatoire pour chaque classe — utilisé pour les paiements de scolarité de l'année active</small>
+                            </div>
+
                             <div class="col-md-12">
                                 <label class="form-label fw-bold">Enseignant Titulaire (Principal)</label>
                                 <select class="form-select" name="teacher">
