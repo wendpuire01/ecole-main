@@ -57,6 +57,28 @@
                             <h6 class="text-success mb-3">
                                 <i class="fas fa-search me-2"></i>Rechercher l'Élève
                             </h6>
+
+                            <!-- Recherche par classe + nom -->
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Filtrer par classe (optionnel)</label>
+                                    <select class="form-select" id="filterClasse">
+                                        <option value="">Toutes les classes</option>
+                                        {% for class in classes %}
+                                        <option value="{{ class.id }}">{{ class.name }} ({{ class.level }})</option>
+                                        {% endfor %}
+                                    </select>
+                                    <small class="text-muted">Choisissez une classe pour afficher/lister ses élèves (ex: pour réinscrire une classe de primaire)</small>
+                                </div>
+                                <div class="col-md-6 position-relative">
+                                    <label class="form-label">Rechercher un élève par nom</label>
+                                    <input type="text" class="form-control" id="studentSearchInput"
+                                           placeholder="Tapez le nom ou prénom de l'élève..." autocomplete="off">
+                                    <div id="studentSearchResults" class="list-group position-absolute w-100 shadow-sm"
+                                         style="z-index: 1050; max-height: 260px; overflow-y: auto; display: none; top: 100%;"></div>
+                                </div>
+                            </div>
+
                             <div class="row g-3 mb-4">
                                 <div class="col-md-6">
                                     <label class="form-label">Matricule <span class="text-danger">*</span></label>
@@ -68,6 +90,7 @@
                                         </button>
                                     </div>
                                     <div id="matriculeError" class="text-danger small mt-1" style="display: none;"></div>
+                                    <small class="text-muted">Rempli automatiquement si vous choisissez l'élève ci-dessus</small>
                                 </div>
                                 <div class="col-md-6 d-flex align-items-end">
                                     <div id="studentFound" class="alert alert-success mb-0 w-100" style="display: none;">
@@ -305,6 +328,72 @@ matriculeInput.addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         e.preventDefault();
         searchBtn.click();
+    }
+});
+
+// Recherche d'élève par nom / liste des élèves d'une classe (AJAX)
+const filterClasse = document.getElementById('filterClasse');
+const studentSearchInput = document.getElementById('studentSearchInput');
+const studentSearchResults = document.getElementById('studentSearchResults');
+let studentSearchTimeout;
+
+function runStudentSearch() {
+    const q = studentSearchInput.value.trim();
+    const classId = filterClasse.value;
+
+    if (!q && !classId) {
+        studentSearchResults.style.display = 'none';
+        studentSearchResults.innerHTML = '';
+        return;
+    }
+
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (classId) params.set('class_id', classId);
+
+    fetch(`/finance/api/students/search/?${params.toString()}`)
+        .then(response => response.json())
+        .then(data => {
+            studentSearchResults.innerHTML = '';
+
+            if (data.success && data.students.length > 0) {
+                data.students.forEach(s => {
+                    const item = document.createElement('button');
+                    item.type = 'button';
+                    item.className = 'list-group-item list-group-item-action';
+                    item.innerHTML = `<strong>${s.name} ${s.first_name}</strong> ` +
+                        `<small class="text-muted">${s.matricule}${s.classe ? ' &middot; ' + s.classe : ''}</small>`;
+                    item.addEventListener('click', function() {
+                        matriculeInput.value = s.matricule;
+                        studentSearchInput.value = `${s.name} ${s.first_name}`;
+                        studentSearchResults.style.display = 'none';
+                        searchBtn.click();
+                    });
+                    studentSearchResults.appendChild(item);
+                });
+            } else {
+                const empty = document.createElement('div');
+                empty.className = 'list-group-item text-muted';
+                empty.textContent = 'Aucun élève trouvé';
+                studentSearchResults.appendChild(empty);
+            }
+            studentSearchResults.style.display = 'block';
+        })
+        .catch(() => {
+            studentSearchResults.style.display = 'none';
+        });
+}
+
+studentSearchInput.addEventListener('input', function() {
+    clearTimeout(studentSearchTimeout);
+    studentSearchTimeout = setTimeout(runStudentSearch, 300);
+});
+
+filterClasse.addEventListener('change', runStudentSearch);
+
+document.addEventListener('click', function(e) {
+    if (e.target !== studentSearchInput && !studentSearchResults.contains(e.target)) {
+        studentSearchResults.style.display = 'none';
     }
 });
 

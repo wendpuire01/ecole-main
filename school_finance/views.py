@@ -427,6 +427,46 @@ def get_student_by_matricule(request):
 
 
 @login_required
+def search_students_api(request):
+    """Recherche d'élèves par nom/matricule, avec filtre optionnel par classe.
+    Utilisé pour retrouver un élève à réinscrire (par nom) ou lister les
+    élèves d'une classe (ex: pour réinscrire toute une classe primaire)."""
+    query = request.GET.get('q', '').strip()
+    class_id = request.GET.get('class_id', '').strip()
+
+    if not query and not class_id:
+        return JsonResponse({'success': True, 'students': []})
+
+    if class_id:
+        try:
+            classe = Class.objects.get(id=class_id)
+        except Class.DoesNotExist:
+            return JsonResponse({'success': True, 'students': []})
+        students = classe.students.all()
+    else:
+        students = Student.objects.all()
+
+    if query:
+        students = students.filter(
+            Q(name__icontains=query) |
+            Q(first_name__icontains=query) |
+            Q(matricule__icontains=query)
+        )
+
+    students = students.order_by('name', 'first_name')[:50]
+
+    results = [{
+        'id': s.id,
+        'matricule': s.matricule,
+        'name': s.name,
+        'first_name': s.first_name,
+        'classe': s.classe.name if s.classe else '',
+    } for s in students]
+
+    return JsonResponse({'success': True, 'students': results})
+
+
+@login_required
 def get_schedule_amount(request):
     """Retourne le montant attendu depuis l'échéancier (AJAX)"""
     class_id = request.GET.get('class_id')

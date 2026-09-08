@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Élèves - {{ class.name }} - Gestion d'École{% endblock %}
+
+{% block content %}
+<div class="class-students-page">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1">Élèves de {{ class.name }}</h1>
+            <p class="text-muted mb-0">{{ class.level }} &middot; {{ students.count }} élève{{ students.count|pluralize }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'enrollment_create' %}" class="btn btn-success">
+                <i class="fas fa-user-check me-2"></i>Réinscrire un élève
+            </a>
+            <a href="{% url 'class_detail' class.id %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Retour à la classe
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="flex-grow-1" style="max-width: 320px;">
+                <input type="text" class="form-control" id="studentFilterInput"
+                       placeholder="Rechercher un élève par nom...">
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-success" onclick="exportTableToExcel('classStudentsTable', 'eleves_{{ class.name }}')">
+                    <i class="fas fa-file-excel me-2"></i>Exporter
+                </button>
+                <a href="{% url 'assign_students' class.id %}" class="btn btn-primary">
+                    <i class="fas fa-user-plus me-2"></i>Ajouter Élève
+                </a>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {% if students %}
+                <div class="table-responsive">
+                    <table class="table mb-0" id="classStudentsTable">
+                        <thead>
+                            <tr>
+                                <th>Matricule</th>
+                                <th>Nom Complet</th>
+                                <th>Date de Naissance</th>
+                                <th>Téléphone</th>
+                                <th>Adresse</th>
+                                <th width="12%">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="classStudentsBody">
+                            {% for student in students %}
+                            <tr class="student-row">
+                                <td>{{ student.matricule }}</td>
+                                <td class="student-name">
+                                    <div class="d-flex align-items-center">
+                                        <div class="user-avatar me-2">
+                                            <i class="fas fa-user-graduate text-primary"></i>
+                                        </div>
+                                        <div class="fw-semibold">
+                                            {{ student.name }} {{ student.first_name }}{% if student.surname %} {{ student.surname }}{% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>{{ student.birth_date|date:"d/m/Y"|default:"-" }}</td>
+                                <td>{{ student.phone|default:"-" }}</td>
+                                <td>{{ student.address|default:"-" }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'student_detail' student.id %}"
+                                           class="btn btn-outline-primary" title="Voir">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'student_edit' student.id %}"
+                                           class="btn btn-outline-secondary" title="Modifier">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <p id="noStudentMatch" class="text-center text-muted py-4" style="display: none;">
+                    Aucun élève ne correspond à la recherche
+                </p>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-user-graduate fa-4x text-muted mb-3"></i>
+                    <p class="text-muted mb-0">Aucun élève dans cette classe</p>
+                    <a href="{% url 'assign_students' class.id %}" class="btn btn-primary mt-3">
+                        <i class="fas fa-plus me-2"></i>Ajouter le Premier Élève
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const studentFilterInput = document.getElementById('studentFilterInput');
+if (studentFilterInput) {
+    studentFilterInput.addEventListener('input', function() {
+        const term = this.value.trim().toLowerCase();
+        const rows = document.querySelectorAll('#classStudentsBody .student-row');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const name = row.querySelector('.student-name').textContent.toLowerCase();
+            const matches = name.includes(term);
+            row.style.display = matches ? '' : 'none';
+            if (matches) visibleCount++;
+        });
+
+        const noMatch = document.getElementById('noStudentMatch');
+        if (noMatch) {
+            noMatch.style.display = visibleCount === 0 ? 'block' : 'none';
+        }
+    });
+}
+</script>
+{% endblock %}

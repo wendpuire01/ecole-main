@@ -9,7 +9,7 @@
         body {
             font-family: Arial, sans-serif;
             font-size: 13px;
-            color: #222;
+            color: #000;
             background: #f0f0f0;
         }
         .page {
@@ -27,42 +27,43 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            border-bottom: 3px solid #1a56db;
+            border-bottom: 3px solid #000;
             padding-bottom: 14px;
             margin-bottom: 16px;
         }
         .school-identity {
             display: flex;
             align-items: flex-start;
-            gap: 12px;
+            gap: 16px;
         }
         .school-logo {
-            width: 64px;
-            height: 64px;
+            width: 110px;
+            height: 110px;
             object-fit: contain;
             flex-shrink: 0;
         }
         .school-logo-placeholder {
-            width: 64px;
-            height: 64px;
-            background: #e8eeff;
+            width: 110px;
+            height: 110px;
+            background: #f0f0f0;
+            border: 1px solid #ccc;
             border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 28px;
-            color: #1a56db;
+            font-size: 46px;
+            color: #000;
             flex-shrink: 0;
         }
-        .school-info h2 { font-size: 15px; color: #1a56db; font-weight: bold; }
-        .school-info p  { font-size: 11px; color: #555; margin-top: 2px; }
+        .school-info h2 { font-size: 17px; color: #000; font-weight: bold; }
+        .school-info p  { font-size: 11px; color: #000; margin-top: 2px; }
 
         .receipt-badge { text-align: right; }
-        .receipt-badge h3 { font-size: 18px; color: #1a56db; font-weight: bold; letter-spacing: 1px; }
+        .receipt-badge h3 { font-size: 18px; color: #000; font-weight: bold; letter-spacing: 1px; }
         .receipt-num {
             display: inline-block;
             margin-top: 6px;
-            background: #1a56db;
+            background: #000;
             color: white;
             font-size: 14px;
             font-weight: bold;
@@ -70,7 +71,7 @@
             border-radius: 20px;
             letter-spacing: 1px;
         }
-        .receipt-badge .date { font-size: 11px; color: #555; margin-top: 6px; }
+        .receipt-badge .date { font-size: 11px; color: #000; margin-top: 6px; }
 
         /* ── INFO GRID ── */
         .info-grid {
@@ -84,13 +85,13 @@
             border-radius: 4px;
             padding: 7px 10px;
         }
-        .info-box .label { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+        .info-box .label { font-size: 9px; color: #000; text-transform: uppercase; letter-spacing: 0.5px; }
         .info-box .value { font-size: 13px; font-weight: bold; margin-top: 2px; }
 
         /* ── AMOUNT HIGHLIGHT ── */
         .amount-section {
-            background: #f0f7ff;
-            border: 2px solid #1a56db;
+            background: #f5f5f5;
+            border: 2px solid #000;
             border-radius: 6px;
             padding: 12px 18px;
             margin-bottom: 14px;
@@ -98,9 +99,9 @@
             justify-content: space-between;
             align-items: center;
         }
-        .amount-section .label       { font-size: 11px; color: #1a56db; font-weight: bold; text-transform: uppercase; }
-        .amount-section .sub-label   { font-size: 10px; color: #555; margin-top: 3px; }
-        .amount-section .amount      { font-size: 24px; font-weight: bold; color: #1a56db; white-space: nowrap; }
+        .amount-section .label       { font-size: 11px; color: #000; font-weight: bold; text-transform: uppercase; }
+        .amount-section .sub-label   { font-size: 10px; color: #000; margin-top: 3px; }
+        .amount-section .amount      { font-size: 24px; font-weight: bold; color: #000; white-space: nowrap; }
 
         /* ── VERSEMENTS TABLE ── */
         .section-title {
@@ -108,7 +109,7 @@
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: #555;
+            color: #000;
             margin-bottom: 6px;
         }
         .details-table {
@@ -124,14 +125,14 @@
             text-align: left;
             border: 1px solid #ddd;
             text-transform: uppercase;
-            color: #555;
+            color: #000;
         }
         .details-table td {
             padding: 6px 8px;
             border: 1px solid #ddd;
         }
         .details-table tr.current-row {
-            background: #fffde7;
+            background: #eeeeee;
             font-weight: bold;
         }
         .details-table .text-right { text-align: right; }
@@ -149,15 +150,17 @@
             padding: 8px 12px;
             text-align: center;
         }
-        .total-box .t-label { font-size: 10px; color: #555; text-transform: uppercase; }
+        .total-box .t-label { font-size: 10px; color: #000; text-transform: uppercase; }
         .total-box .t-value { font-size: 14px; font-weight: bold; margin-top: 2px; }
-        .total-box.total-due      { background: #f3f4f6; border: 1px solid #ddd; }
-        .total-box.total-paid     { background: #d1fae5; border: 1px solid #6ee7b7; }
-        .total-box.total-paid .t-value { color: #065f46; }
-        .total-box.total-remaining { background: #fef3c7; border: 1px solid #fcd34d; }
-        .total-box.total-remaining.cleared { background: #d1fae5; border: 1px solid #6ee7b7; }
-        .total-box.total-remaining .t-value { color: #92400e; }
-        .total-box.total-remaining.cleared .t-value { color: #065f46; }
+        .total-box.total-due      { background: #f5f5f5; border: 1px solid #ccc; }
+        .total-box.total-due .t-value { color: #000; }
+        .total-box.total-paid     { background: #f5f5f5; border: 1px solid #999; }
+        .total-box.total-paid .t-value { color: #000; }
+        .total-box.total-remaining { background: #fff; border: 1px dashed #000; }
+        .total-box.total-remaining .t-value { color: #000; }
+        .total-box.total-remaining.cleared { background: #000; border: 1px solid #000; }
+        .total-box.total-remaining.cleared .t-label { color: #ddd; }
+        .total-box.total-remaining.cleared .t-value { color: #fff; }
 
         /* ── FOOTER ── */
         .footer {
@@ -168,17 +171,17 @@
             padding-top: 12px;
             margin-top: 6px;
         }
-        .footer .note { font-size: 10px; color: #888; max-width: 200px; line-height: 1.5; }
+        .footer .note { font-size: 10px; color: #000; max-width: 200px; line-height: 1.5; }
         .signature-box { text-align: center; }
         .signature-box .sig-line {
             width: 140px; border-bottom: 1px solid #333;
             margin: 28px auto 4px;
         }
-        .signature-box .sig-label { font-size: 11px; color: #555; font-weight: bold; }
-        .signature-box .sig-name  { font-size: 11px; color: #333; margin-top: 2px; }
+        .signature-box .sig-label { font-size: 11px; color: #000; font-weight: bold; }
+        .signature-box .sig-name  { font-size: 11px; color: #000; margin-top: 2px; }
 
         .tag-current {
-            background: #1a56db; color: white;
+            background: #000; color: white;
             font-size: 9px; padding: 1px 6px; border-radius: 8px;
             vertical-align: middle; margin-left: 4px;
         }
@@ -192,8 +195,8 @@
 </head>
 <body>
 
-<div class="no-print" style="text-align:center; padding: 10px 20px; background: #1a56db; color:white; display:flex; justify-content:center; gap:10px;">
-    <button onclick="window.print()" style="background:white; color:#1a56db; border:none; padding:8px 22px; border-radius:4px; font-weight:bold; cursor:pointer;">
+<div class="no-print" style="text-align:center; padding: 10px 20px; background: #000; color:white; display:flex; justify-content:center; gap:10px;">
+    <button onclick="window.print()" style="background:white; color:#000; border:none; padding:8px 22px; border-radius:4px; font-weight:bold; cursor:pointer;">
         🖨️ Imprimer
     </button>
     <button onclick="window.close()" style="background:transparent; color:white; border:1px solid white; padding:8px 22px; border-radius:4px; cursor:pointer;">
@@ -289,8 +292,7 @@
                 <td>{{ row.obj.reference_number|default:"—" }}</td>
                 <td class="text-right">{{ row.obj.amount|floatformat:0 }} FCFA</td>
                 <td class="text-right">{{ row.cumulative|floatformat:0 }} FCFA</td>
-                <td class="text-right"
-                    style="color:{% if row.remaining == 0 %}#065f46{% else %}#92400e{% endif %}; font-weight:bold;">
+                <td class="text-right" style="color:#000; font-weight:bold;">
                     {{ row.remaining|floatformat:0 }} FCFA
                 </td>
             </tr>

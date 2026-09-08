@@ -42,6 +42,15 @@
                                 <label class="form-label fw-bold">Niveau <span class="text-danger">*</span></label>
                                 <select class="form-select" name="level" required>
                                     <option value="">Sélectionner un niveau</option>
+                                    <optgroup label="Primaire">
+                                    <option value="CP1" {% if class.level == "CP1" %}selected{% endif %}>CP1</option>
+                                    <option value="CP2" {% if class.level == "CP2" %}selected{% endif %}>CP2</option>
+                                    <option value="CE1" {% if class.level == "CE1" %}selected{% endif %}>CE1</option>
+                                    <option value="CE2" {% if class.level == "CE2" %}selected{% endif %}>CE2</option>
+                                    <option value="CM1" {% if class.level == "CM1" %}selected{% endif %}>CM1</option>
+                                    <option value="CM2" {% if class.level == "CM2" %}selected{% endif %}>CM2</option>
+                                    </optgroup>
+                                    <optgroup label="Secondaire">
                                     <option value="6eme" {% if class.level == "6eme" %}selected{% endif %}>6ème</option>
                                     <option value="5eme" {% if class.level == "5eme" %}selected{% endif %}>5ème</option>
                                     <option value="4eme" {% if class.level == "4eme" %}selected{% endif %}>4ème</option>
@@ -49,6 +58,7 @@
                                     <option value="Seconde" {% if class.level == "Seconde" %}selected{% endif %}>Seconde</option>
                                     <option value="Première" {% if class.level == "Première" %}selected{% endif %}>Première</option>
                                     <option value="Terminale" {% if class.level == "Terminale" %}selected{% endif %}>Terminale</option>
+                                    </optgroup>
                                 </select>
                             </div>
 

@@ -18,6 +18,7 @@ urlpatterns = [
 
     # AJAX
     path('api/student-by-matricule/', views.get_student_by_matricule, name='get_student_by_matricule'),
+    path('api/students/search/', views.search_students_api, name='search_students_api'),
     path('api/schedule-amount/', views.get_schedule_amount, name='get_schedule_amount'),
     path('api/fee-structures/', views.get_fee_structures, name='get_fee_structures'),
 
