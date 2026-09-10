@@ -89,6 +89,17 @@
                     <input type="text" class="form-control" name="search" value="{{ search }}" placeholder="Nom, matricule...">
                 </div>
                 <div class="col-12 col-md-2">
+                    <label class="form-label">Classe</label>
+                    <select class="form-select" name="class">
+                        <option value="">Toutes les classes</option>
+                        {% for class in classes %}
+                        <option value="{{ class.id }}" {% if selected_class == class.id|stringformat:"s" %}selected{% endif %}>
+                            {{ class.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-2">
                     <label class="form-label">Statut</label>
                     <select class="form-select" name="status">
                         <option value="">Tous</option>
