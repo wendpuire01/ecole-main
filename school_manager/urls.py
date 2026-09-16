@@ -14,7 +14,12 @@ urlpatterns = [
     path('finance/', include('school_finance.urls')),
 ]
 
-# Servir les fichiers media et static en développement
+# Les fichiers media (logo, photos...) sont servis par Django dans tous les
+# environnements : sans Nginx devant (docker-compose.yml simple), rien
+# d'autre ne les sert en production puisque DEBUG=False.
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Les fichiers static sont servis par WhiteNoise en production, donc
+# uniquement nécessaire ici en développement.
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
