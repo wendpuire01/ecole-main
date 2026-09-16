@@ -418,11 +418,41 @@ class Receipt(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.receipt_number:
-            # Générer automatiquement le numéro de reçu
+            # Générer automatiquement le numéro de reçu, à partir du plus
+            # grand numéro existant (et non d'un simple comptage de lignes,
+            # qui se désynchronise dès qu'un reçu est supprimé et provoque
+            # alors une collision permanente avec la contrainte unique).
             from datetime import datetime
+            from django.db import IntegrityError, transaction
+
             year = datetime.now().year
-            count = Receipt.objects.filter(
-                issue_date__year=year
-            ).count() + 1
-            self.receipt_number = f"REC-{year}-{count:05d}"
-        super().save(*args, **kwargs)
+            prefix = f"REC-{year}-"
+
+            last_error = None
+            for _ in range(10):
+                last_receipt = Receipt.objects.filter(
+                    receipt_number__startswith=prefix
+                ).order_by('-receipt_number').first()
+
+                if last_receipt:
+                    try:
+                        last_seq = int(last_receipt.receipt_number.rsplit('-', 1)[-1])
+                    except ValueError:
+                        last_seq = 0
+                else:
+                    last_seq = 0
+
+                self.receipt_number = f"{prefix}{last_seq + 1:05d}"
+
+                try:
+                    with transaction.atomic():
+                        super().save(*args, **kwargs)
+                    return
+                except IntegrityError as exc:
+                    last_error = exc
+                    self.receipt_number = ''
+                    continue
+
+            raise last_error
+        else:
+            super().save(*args, **kwargs)
